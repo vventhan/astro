@@ -425,7 +425,7 @@ def show_landing_page():
 
         st.markdown("""
             <p style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #6B7280;">
-                Don't have a key? <a href="https://ai.google.dev" target="_blank" style="color: #4F46E5; text-decoration: none; font-weight: 500;">Get one free at ai.google.dev</a>
+                Don't have a key? <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #4F46E5; text-decoration: none; font-weight: 500;">Get one free at aistudio.google.com/apikey</a>
             </p>
         """, unsafe_allow_html=True)
 

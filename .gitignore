@@ -55,3 +55,6 @@ htmlcov/
 # Uploaded files (if any get saved)
 uploads/
 *.pdf
+
+# Claude Code project file
+CLAUDE.md
