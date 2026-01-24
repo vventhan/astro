@@ -541,17 +541,21 @@ def show_landing_page():
             if not api_key:
                 st.error("Please enter your API key")
             else:
-                with st.spinner("Validating..."):
+                with st.spinner("Checking available models..."):
                     agent = AstrologyAgent(api_key)
-                    is_valid, error_msg = agent.validate_api_key()
+                    is_valid, error_msg, tried_models = agent.validate_api_key()
 
                     if is_valid:
                         st.session_state.api_key = api_key
                         st.session_state.api_key_valid = True
                         st.session_state.gemini_model = agent.model
+                        st.session_state.tried_models = tried_models
                         st.rerun()
                     else:
                         st.error(error_msg)
+                        if tried_models:
+                            details = ", ".join([f"{m}: {r}" for m, r in tried_models])
+                            st.caption(f"Tried: {details}")
 
         # Disclaimer
         st.markdown("""
@@ -612,7 +616,12 @@ def show_main_app():
         with header_col1:
             st.markdown("### ✨ Vedic Astrology Agent")
             if st.session_state.gemini_model:
-                st.caption(f"Using {st.session_state.gemini_model}")
+                model_info = f"Using {st.session_state.gemini_model}"
+                tried = st.session_state.get("tried_models", [])
+                if len(tried) > 1:
+                    skipped = [f"{m} ({r})" for m, r in tried[:-1]]
+                    model_info += f" · Skipped: {', '.join(skipped)}"
+                st.caption(model_info)
         with header_col2:
             if st.button("🔄 New Session", use_container_width=True):
                 for key in list(st.session_state.keys()):

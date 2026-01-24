@@ -28,15 +28,16 @@ class AstrologyAgent:
         self.client = genai.Client(api_key=api_key)
         self.model = model  # Use provided model or will be set during validation
 
-    def validate_api_key(self) -> tuple[bool, str]:
+    def validate_api_key(self) -> tuple[bool, str, list]:
         """
         Validate the API key by making a simple request.
         Tries multiple models to find one that works.
 
         Returns:
-            Tuple of (is_valid, error_message)
+            Tuple of (is_valid, error_message, tried_models)
         """
         last_error = None
+        tried_models = []
 
         for model_name in MODELS:
             try:
@@ -46,22 +47,33 @@ class AstrologyAgent:
                 )
                 # If we get here, the model works
                 self.model = model_name
-                return True, ""
+                tried_models.append((model_name, "success"))
+                return True, "", tried_models
             except Exception as e:
-                last_error = str(e)
+                error_msg = str(e)
+                last_error = error_msg
+                # Extract short error reason
+                if "not found" in error_msg.lower():
+                    tried_models.append((model_name, "not found"))
+                elif "quota" in error_msg.lower() or "limit" in error_msg.lower():
+                    tried_models.append((model_name, "quota exceeded"))
+                elif "permission" in error_msg.lower():
+                    tried_models.append((model_name, "no permission"))
+                else:
+                    tried_models.append((model_name, "error"))
                 continue
 
         # None of the models worked
         error_lower = last_error.lower() if last_error else ""
 
         if "invalid" in error_lower or "api_key" in error_lower or "api key" in error_lower:
-            return False, "Invalid API key. Please check and try again."
+            return False, "Invalid API key. Please check and try again.", tried_models
         elif "permission" in error_lower or "denied" in error_lower:
-            return False, "API key doesn't have permission. Please check your Gemini API settings."
+            return False, "API key doesn't have permission. Please check your Gemini API settings.", tried_models
         elif "quota" in error_lower or "limit" in error_lower or "resource" in error_lower:
-            return False, "API quota exceeded. Please try again later or check your usage limits."
+            return False, "API quota exceeded. Please try again later or check your usage limits.", tried_models
         else:
-            return False, f"Could not connect to Gemini API: {last_error}"
+            return False, f"Could not connect to Gemini API: {last_error}", tried_models
 
     def get_reading(self, category: str, chart_content: str, year: int = None, dasha_lord: str = None) -> str:
         """
