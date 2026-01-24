@@ -297,25 +297,47 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1) !important;
     }
 
-    /* File uploader */
+    /* File uploader - clean light style */
     [data-testid="stFileUploader"] {
-        background: #fafafa !important;
-        border-radius: 6px !important;
-        border: 1px dashed var(--border) !important;
+        background: #ffffff !important;
+        border-radius: 8px !important;
+        border: 1px dashed #cbd5e0 !important;
     }
 
     [data-testid="stFileUploader"]:hover {
-        border-color: var(--text-muted) !important;
+        border-color: var(--primary) !important;
     }
 
     [data-testid="stFileUploader"] section {
-        padding: 0.5rem !important;
+        padding: 1rem !important;
+        background: #ffffff !important;
+    }
+
+    [data-testid="stFileUploader"] section > div {
+        background: #f7fafc !important;
+        border-radius: 6px !important;
+        padding: 1rem !important;
+    }
+
+    [data-testid="stFileUploader"] section > div > div {
+        background: transparent !important;
+    }
+
+    [data-testid="stFileUploader"] small,
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] p {
+        color: var(--text-secondary) !important;
     }
 
     [data-testid="stFileUploader"] button {
         background: var(--primary) !important;
-        color: white !important;
+        color: #ffffff !important;
         border: none !important;
+    }
+
+    [data-testid="stFileUploader"] button span,
+    [data-testid="stFileUploader"] button p {
+        color: #ffffff !important;
     }
 
     /* Success alert override */
@@ -537,10 +559,11 @@ def show_main_app():
 
         # Upload section
         uploaded_file = st.file_uploader(
-            "Upload your birth chart PDF",
+            "Upload your birth chart",
             type=["pdf"],
-            help="From Jagannatha Hora, Parashara's Light, Astro-Sage, or any Vedic astrology software"
+            help="Complete PDF reports work best"
         )
+        st.caption("Supports PDF from Astro-Sage, Jagannatha Hora, or other Vedic astrology software.")
 
         if uploaded_file:
             if uploaded_file.name != st.session_state.pdf_name:
@@ -677,7 +700,7 @@ def show_main_app():
                 """, unsafe_allow_html=True)
 
         else:
-            st.info("Upload your birth chart as PDF or image from Astro-Sage, Jagannatha Hora, or other Vedic astrology software. Complete PDF reports work best.")
+            pass  # Upload instructions shown above
 
 
 def main():
