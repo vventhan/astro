@@ -392,8 +392,8 @@ def show_landing_page():
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-def get_chat_response(user_message: str) -> str:
-    """Get response from the astrology agent for chat."""
+def stream_chat_response(user_message: str):
+    """Stream response from the astrology agent for chat."""
     agent = AstrologyAgent(
         st.session_state.api_key,
         model=st.session_state.gemini_model
@@ -401,11 +401,10 @@ def get_chat_response(user_message: str) -> str:
 
     # Build context from chat history
     history_context = ""
-    for msg in st.session_state.chat_history[-6:]:  # Last 6 messages for context
+    for msg in st.session_state.chat_history[-6:]:
         role = "User" if msg["role"] == "user" else "Astrologer"
         history_context += f"{role}: {msg['content']}\n\n"
 
-    from datetime import datetime
     today = datetime.now().strftime("%B %d, %Y")
 
     prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart.
@@ -428,18 +427,10 @@ def get_chat_response(user_message: str) -> str:
 - Use today's date to determine current dasha periods"""
 
     try:
-        from google.genai import types
-        response = agent.client.models.generate_content(
-            model=agent.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.8,
-                max_output_tokens=2048,
-            )
-        )
-        return response.text
+        for chunk in agent.stream_chat(prompt):
+            yield chunk
     except Exception as e:
-        return f"Error: {str(e)}"
+        yield f"Error: {str(e)}"
 
 
 def show_main_app():
@@ -503,12 +494,14 @@ def show_main_app():
                     "Year",
                     min_value=current_year - 10,
                     max_value=current_year + 10,
-                    value=current_year
+                    value=current_year,
+                    key="annual_year"
                 )
             elif reading_type == "Dasha":
                 dasha_lord = st.selectbox(
                     "Dasha Lord",
-                    options=["Auto-detect", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+                    options=["Auto-detect", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"],
+                    key="dasha_lord_select"
                 )
             else:
                 st.markdown("<div style='height: 76px'></div>", unsafe_allow_html=True)
@@ -516,75 +509,73 @@ def show_main_app():
         with opt_col3:
             st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
             get_reading_disabled = st.session_state.pdf_content is None
-            if st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled):
-                if st.session_state.pdf_content:
-                    category = reading_type.lower()
-
-                    with st.spinner(f"Generating {reading_type} reading..."):
-                        try:
-                            agent = AstrologyAgent(
-                                st.session_state.api_key,
-                                model=st.session_state.gemini_model
-                            )
-
-                            year = year_input if reading_type == "Annual" else None
-                            dasha = dasha_lord if reading_type == "Dasha" else None
-
-                            reading = agent.get_reading(
-                                category=category,
-                                chart_content=st.session_state.pdf_content,
-                                year=year,
-                                dasha_lord=dasha
-                            )
-
-                            st.session_state.chat_history.append({
-                                "role": "user",
-                                "content": f"Give me a {reading_type} reading" + (f" for {year_input}" if reading_type == "Annual" else "")
-                            })
-                            st.session_state.chat_history.append({
-                                "role": "assistant",
-                                "content": reading
-                            })
-                            st.rerun()
-                        except Exception as e:
-                            st.error(str(e))
+            get_reading = st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled)
 
         st.markdown("---")
 
         # Chat interface
         if st.session_state.pdf_content:
-            # Display chat messages
-            chat_container = st.container()
+            # Handle "Get Reading" button with streaming (shows at top)
+            if get_reading:
+                category = reading_type.lower()
+                user_msg = f"Give me a {reading_type} reading" + (f" for {year_input}" if reading_type == "Annual" else "")
 
-            with chat_container:
-                if not st.session_state.chat_history:
-                    st.markdown("""
-                        <div class="welcome-card">
-                            <div class="welcome-icon">🌟</div>
-                            <p class="welcome-title">Chart Ready</p>
-                            <p class="welcome-text">Select a reading type above, or ask any question about your chart below.</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    for message in st.session_state.chat_history:
-                        with st.chat_message(message["role"]):
-                            st.markdown(message["content"])
+                st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                with st.chat_message("user"):
+                    st.markdown(user_msg)
 
-            # Chat input
-            if user_input := st.chat_input("Ask a question about your chart..."):
-                st.session_state.chat_history.append({
-                    "role": "user",
-                    "content": user_input
-                })
+                with st.chat_message("assistant"):
+                    try:
+                        agent = AstrologyAgent(
+                            st.session_state.api_key,
+                            model=st.session_state.gemini_model
+                        )
+                        year = year_input if reading_type == "Annual" else None
+                        dasha = dasha_lord if reading_type == "Dasha" else None
 
-                with st.spinner("Thinking..."):
-                    response = get_chat_response(user_input)
-                    st.session_state.chat_history.append({
-                        "role": "assistant",
-                        "content": response
-                    })
+                        response = st.write_stream(
+                            agent.stream_reading(
+                                category=category,
+                                chart_content=st.session_state.pdf_content,
+                                year=year,
+                                dasha_lord=dasha
+                            )
+                        )
+                        st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    except Exception as e:
+                        st.error(str(e))
 
-                st.rerun()
+                st.markdown("---")
+
+            # Chat input for follow-up questions
+            user_input = st.chat_input("Ask a follow-up question about your chart...")
+
+            # Handle chat input with streaming
+            if user_input:
+                st.session_state.chat_history.append({"role": "user", "content": user_input})
+                with st.chat_message("user"):
+                    st.markdown(user_input)
+
+                with st.chat_message("assistant"):
+                    response = st.write_stream(stream_chat_response(user_input))
+                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+
+                st.markdown("---")
+
+            # Display existing chat messages (newest first)
+            if not st.session_state.chat_history and not get_reading:
+                st.markdown("""
+                    <div class="welcome-card">
+                        <div class="welcome-icon">🌟</div>
+                        <p class="welcome-title">Chart Ready</p>
+                        <p class="welcome-text">Select a reading type above, or ask a question below.</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            elif st.session_state.chat_history:
+                st.markdown("#### Previous Readings")
+                for message in reversed(st.session_state.chat_history):
+                    with st.chat_message(message["role"]):
+                        st.markdown(message["content"])
 
         else:
             st.info("Upload a birth chart PDF to get started")

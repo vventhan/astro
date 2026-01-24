@@ -110,3 +110,64 @@ class AstrologyAgent:
                 raise Exception(f"Invalid request: {str(e)}")
             else:
                 raise Exception(f"Error generating reading: {str(e)}")
+
+    def stream_reading(self, category: str, chart_content: str, year: int = None, dasha_lord: str = None):
+        """
+        Stream an astrology reading for the given category.
+
+        Yields:
+            Text chunks as they are generated
+        """
+        if category == "annual" and not year:
+            raise ValueError("Year is required for annual predictions.")
+
+        if not self.model:
+            raise Exception("No model available. Please validate API key first.")
+
+        system_prompt = get_system_prompt(category)
+        user_prompt = get_user_prompt(category, chart_content, year, dasha_lord)
+        full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
+
+        try:
+            for chunk in self.client.models.generate_content_stream(
+                model=self.model,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=1.0,
+                    max_output_tokens=8192,
+                )
+            ):
+                if chunk.text:
+                    yield chunk.text
+
+        except Exception as e:
+            error_str = str(e).lower()
+            if "quota" in error_str or "limit" in error_str:
+                raise Exception("API quota exceeded. Please try again later.")
+            else:
+                raise Exception(f"Error generating reading: {str(e)}")
+
+    def stream_chat(self, prompt: str):
+        """
+        Stream a chat response.
+
+        Yields:
+            Text chunks as they are generated
+        """
+        if not self.model:
+            raise Exception("No model available. Please validate API key first.")
+
+        try:
+            for chunk in self.client.models.generate_content_stream(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.8,
+                    max_output_tokens=2048,
+                )
+            ):
+                if chunk.text:
+                    yield chunk.text
+
+        except Exception as e:
+            raise Exception(f"Error: {str(e)}")

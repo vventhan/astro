@@ -504,7 +504,21 @@ def get_user_prompt(category: str, chart_content: str, year: int = None, dasha_l
     from datetime import datetime
     today = datetime.now().strftime("%B %d, %Y")
 
-    base_prompt = f"""**TODAY'S DATE:** {today}
+    if category == "annual" and year:
+        base_prompt = f"""**TODAY'S DATE:** {today}
+**TARGET YEAR FOR PREDICTIONS:** {year}
+
+**CHART DATA:**
+
+{chart_content}
+
+---
+
+Analyze this chart and provide the ANNUAL reading for the year {year}. Extract actual data from the chart - do not hallucinate positions or dates.
+
+IMPORTANT: Generate predictions specifically for the year {year}, NOT the current date. The monthly breakdown should cover January {year} through December {year}. Use planetary transit positions for {year}."""
+    else:
+        base_prompt = f"""**TODAY'S DATE:** {today}
 
 **CHART DATA:**
 
@@ -514,11 +528,8 @@ def get_user_prompt(category: str, chart_content: str, year: int = None, dasha_l
 
 Analyze this chart and provide the {category.upper()} reading. Extract actual data from the chart - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
 
-    if category == "annual" and year:
-        base_prompt += f"\n\n**TARGET YEAR: {year}**"
-
     if category == "dasha":
-        if dasha_lord and "Current" not in dasha_lord:
+        if dasha_lord and dasha_lord != "Auto-detect":
             # Extract just the planet name (e.g., "Sun (Surya)" -> "Sun")
             planet = dasha_lord.split(" (")[0] if " (" in dasha_lord else dasha_lord
             base_prompt += f"\n\n**FOCUS: Analyze the {planet} Mahadasha specifically, along with whatever Antardasha is currently running under it.**"
