@@ -1,47 +1,42 @@
-"""PDF parsing module for extracting text from astrology chart PDFs."""
+"""File processing module for birth chart files."""
 
-import fitz  # PyMuPDF
+import mimetypes
 
 
-def extract_text_from_pdf(pdf_file) -> str:
+# Supported file types
+SUPPORTED_TYPES = {
+    "pdf": "application/pdf",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "webp": "image/webp",
+}
+
+
+def process_uploaded_file(uploaded_file) -> tuple[bytes, str]:
     """
-    Extract all text content from an uploaded PDF file.
+    Process an uploaded file and return bytes and mime type.
 
     Args:
-        pdf_file: Streamlit UploadedFile object
+        uploaded_file: Streamlit UploadedFile object
 
     Returns:
-        Extracted text content as a string
+        Tuple of (file_bytes, mime_type)
 
     Raises:
-        ValueError: If PDF is empty or cannot be read
+        ValueError: If file type is not supported
     """
-    try:
-        # Read PDF bytes from uploaded file
-        pdf_bytes = pdf_file.read()
+    # Get file extension
+    filename = uploaded_file.name.lower()
+    ext = filename.rsplit(".", 1)[-1] if "." in filename else ""
 
-        # Open PDF with PyMuPDF
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    if ext not in SUPPORTED_TYPES:
+        raise ValueError(f"Unsupported file type: {ext}. Supported: PDF, PNG, JPG, WEBP")
 
-        # Extract text from all pages
-        text_content = []
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            text = page.get_text()
-            if text.strip():
-                text_content.append(f"--- Page {page_num + 1} ---\n{text}")
+    mime_type = SUPPORTED_TYPES[ext]
+    file_bytes = uploaded_file.read()
 
-        doc.close()
+    if not file_bytes:
+        raise ValueError("File is empty")
 
-        if not text_content:
-            raise ValueError("No text content found in PDF. The file may be image-based or empty.")
-
-        return "\n\n".join(text_content)
-
-    except Exception as e:
-        error_str = str(e).lower()
-        if "no text content" in error_str:
-            raise
-        elif "file" in error_str or "data" in error_str or "format" in error_str or "cannot" in error_str:
-            raise ValueError("Unable to read PDF file. Please ensure it's a valid PDF.")
-        raise ValueError(f"Error processing PDF: {str(e)}")
+    return file_bytes, mime_type

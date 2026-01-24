@@ -3,7 +3,7 @@
 import streamlit as st
 from datetime import datetime
 
-from src.pdf_parser import extract_text_from_pdf
+from src.pdf_parser import process_uploaded_file
 from src.agent import AstrologyAgent
 
 # Page configuration
@@ -500,10 +500,12 @@ if "api_key" not in st.session_state:
     st.session_state.api_key = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = False
-if "pdf_content" not in st.session_state:
-    st.session_state.pdf_content = None
-if "pdf_name" not in st.session_state:
-    st.session_state.pdf_name = None
+if "file_bytes" not in st.session_state:
+    st.session_state.file_bytes = None
+if "file_mime_type" not in st.session_state:
+    st.session_state.file_mime_type = None
+if "file_name" not in st.session_state:
+    st.session_state.file_name = None
 if "last_query" not in st.session_state:
     st.session_state.last_query = None
 if "last_response" not in st.session_state:
@@ -581,24 +583,25 @@ def stream_chat_response(user_message: str):
 
     today = datetime.now().strftime("%B %d, %Y")
 
-    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart.
+    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart (attached).
 
 **TODAY'S DATE:** {today}
-
-**CHART DATA:**
-{st.session_state.pdf_content}
 
 {context}**USER'S QUESTION:** {user_message}
 
 **INSTRUCTIONS:**
-- Answer based strictly on the chart data provided
+- Answer based strictly on the attached birth chart
 - Be conversational but precise
 - Reference specific planetary positions when relevant
 - Keep responses focused and not too long unless detail is requested
 - Use today's date to determine current dasha periods"""
 
     try:
-        for chunk in agent.stream_chat(prompt):
+        for chunk in agent.stream_chat(
+            prompt,
+            file_bytes=st.session_state.file_bytes,
+            mime_type=st.session_state.file_mime_type
+        ):
             yield chunk
         # Update model if it was switched due to quota
         if agent.switched_model:
@@ -634,10 +637,10 @@ def show_main_app():
         # Upload section
         uploaded_file = st.file_uploader(
             "Upload your birth chart",
-            type=["pdf"],
-            help="Complete PDF reports work best"
+            type=["pdf", "png", "jpg", "jpeg", "webp"],
+            help="PDF or image of your birth chart"
         )
-        st.caption("Supports PDF from Astro-Sage, Jagannatha Hora, or other Vedic astrology software.")
+        st.caption("Supports PDF or images from Astro-Sage, Jagannatha Hora, or other Vedic astrology software.")
 
         with st.expander("How to generate a birth chart PDF from AstroSage"):
             st.markdown("""
@@ -654,18 +657,19 @@ def show_main_app():
             """)
 
         if uploaded_file:
-            if uploaded_file.name != st.session_state.pdf_name:
+            if uploaded_file.name != st.session_state.file_name:
                 with st.spinner("Processing..."):
                     try:
-                        content = extract_text_from_pdf(uploaded_file)
-                        st.session_state.pdf_content = content
-                        st.session_state.pdf_name = uploaded_file.name
+                        file_bytes, mime_type = process_uploaded_file(uploaded_file)
+                        st.session_state.file_bytes = file_bytes
+                        st.session_state.file_mime_type = mime_type
+                        st.session_state.file_name = uploaded_file.name
                         st.session_state.last_query = None
                         st.session_state.last_response = None
                     except ValueError as e:
                         st.error(str(e))
 
-            if st.session_state.pdf_content:
+            if st.session_state.file_bytes:
                 st.success(f"Chart loaded: {uploaded_file.name}")
 
         st.markdown("")  # Spacing
@@ -703,11 +707,11 @@ def show_main_app():
 
         with opt_col3:
             st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
-            get_reading_disabled = st.session_state.pdf_content is None
+            get_reading_disabled = st.session_state.file_bytes is None
             get_reading = st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled)
 
-        # Chat input for follow-up questions (always visible when PDF loaded)
-        if st.session_state.pdf_content:
+        # Chat input for follow-up questions (always visible when file loaded)
+        if st.session_state.file_bytes:
             st.markdown("**Ask a follow-up question**")
             input_col1, input_col2 = st.columns([4, 1])
             with input_col1:
@@ -723,7 +727,7 @@ def show_main_app():
         st.markdown("---")
 
         # Response area
-        if st.session_state.pdf_content:
+        if st.session_state.file_bytes:
             # Handle "Get Reading" button with streaming
             if get_reading:
                 category = reading_type.lower()
@@ -749,7 +753,8 @@ def show_main_app():
                             response = st.write_stream(
                                 agent.stream_reading(
                                     category=category,
-                                    chart_content=st.session_state.pdf_content,
+                                    file_bytes=st.session_state.file_bytes,
+                                    mime_type=st.session_state.file_mime_type,
                                     year=year,
                                     dasha_lord=dasha
                                 )

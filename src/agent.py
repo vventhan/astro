@@ -140,9 +140,16 @@ class AstrologyAgent:
             else:
                 raise Exception(f"Error generating reading: {str(e)}")
 
-    def stream_reading(self, category: str, chart_content: str, year: int = None, dasha_lord: str = None):
+    def stream_reading(self, category: str, file_bytes: bytes, mime_type: str, year: int = None, dasha_lord: str = None):
         """
         Stream an astrology reading for the given category.
+
+        Args:
+            category: Type of reading
+            file_bytes: Raw bytes of the uploaded file (PDF or image)
+            mime_type: MIME type of the file
+            year: Year for annual predictions
+            dasha_lord: Specific dasha lord to analyze
 
         Yields:
             Text chunks as they are generated
@@ -154,14 +161,19 @@ class AstrologyAgent:
             raise Exception("No model available. Please validate API key first.")
 
         system_prompt = get_system_prompt(category)
-        user_prompt = get_user_prompt(category, chart_content, year, dasha_lord)
+        user_prompt = get_user_prompt(category, year, dasha_lord)
         full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
+
+        # Create multimodal content with file and text
+        contents = [
+            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            full_prompt
+        ]
 
         models_to_try = [self.model]
         next_model = self._get_next_model()
         while next_model:
             models_to_try.append(next_model)
-            # Get next after that
             idx = MODELS.index(next_model)
             next_model = MODELS[idx + 1] if idx + 1 < len(MODELS) else None
 
@@ -174,7 +186,7 @@ class AstrologyAgent:
 
                 for chunk in self.client.models.generate_content_stream(
                     model=model,
-                    contents=full_prompt,
+                    contents=contents,
                     config=types.GenerateContentConfig(
                         temperature=1.0,
                         max_output_tokens=32768,
@@ -194,15 +206,29 @@ class AstrologyAgent:
         # All models exhausted
         raise Exception("All models quota exceeded. Please try again later or upgrade to a paid API tier.")
 
-    def stream_chat(self, prompt: str):
+    def stream_chat(self, prompt: str, file_bytes: bytes = None, mime_type: str = None):
         """
         Stream a chat response.
+
+        Args:
+            prompt: The chat prompt
+            file_bytes: Optional file bytes for context
+            mime_type: MIME type of the file
 
         Yields:
             Text chunks as they are generated
         """
         if not self.model:
             raise Exception("No model available. Please validate API key first.")
+
+        # Create content with optional file
+        if file_bytes and mime_type:
+            contents = [
+                types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+                prompt
+            ]
+        else:
+            contents = prompt
 
         models_to_try = [self.model]
         next_model = self._get_next_model()
@@ -220,7 +246,7 @@ class AstrologyAgent:
 
                 for chunk in self.client.models.generate_content_stream(
                     model=model,
-                    contents=prompt,
+                    contents=contents,
                     config=types.GenerateContentConfig(
                         temperature=0.8,
                         max_output_tokens=8192,
