@@ -141,7 +141,7 @@ st.markdown("""
         border: 1.5px solid var(--border) !important;
         font-size: 0.9rem !important;
         background-color: #FFFFFF !important;
-        color: #111827 !important;
+        color: #1a202c !important;
     }
 
     .stSelectbox > div > div {
@@ -150,11 +150,35 @@ st.markdown("""
 
     .stSelectbox [data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
-        color: #111827 !important;
+        color: #1a202c !important;
     }
 
     .stSelectbox [data-baseweb="select"] span {
-        color: #111827 !important;
+        color: #1a202c !important;
+    }
+
+    /* Number input - force light theme */
+    .stNumberInput > div,
+    .stNumberInput > div > div,
+    .stNumberInput [data-baseweb="input"],
+    .stNumberInput [data-baseweb="base-input"] {
+        background-color: #FFFFFF !important;
+        background: #FFFFFF !important;
+    }
+
+    .stNumberInput input {
+        background-color: #FFFFFF !important;
+        color: #1a202c !important;
+    }
+
+    .stNumberInput button {
+        background-color: #f7fafc !important;
+        color: #1a202c !important;
+        border-color: var(--border) !important;
+    }
+
+    .stNumberInput button:hover {
+        background-color: #edf2f7 !important;
     }
 
     .stTextInput > div > div > input::placeholder {
@@ -164,7 +188,7 @@ st.markdown("""
     .stTextInput > div > div > input:focus,
     .stSelectbox > div > div > div:focus {
         border-color: var(--primary) !important;
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+        box-shadow: 0 0 0 2px rgba(74, 85, 104, 0.1) !important;
     }
 
     /* Dropdown menu styling - force light theme */
