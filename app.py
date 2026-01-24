@@ -600,6 +600,9 @@ def stream_chat_response(user_message: str):
     try:
         for chunk in agent.stream_chat(prompt):
             yield chunk
+        # Update model if it was switched due to quota
+        if agent.switched_model:
+            st.session_state.gemini_model = agent.switched_model
     except Exception as e:
         yield f"Error: {str(e)}"
 
@@ -752,6 +755,10 @@ def show_main_app():
                                 )
                             )
                         st.session_state.last_response = response
+                        # Update model if it was switched due to quota
+                        if agent.switched_model:
+                            st.session_state.gemini_model = agent.switched_model
+                            st.rerun()
                     except Exception as e:
                         st.error(str(e))
 

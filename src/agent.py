@@ -27,6 +27,21 @@ class AstrologyAgent:
         """
         self.client = genai.Client(api_key=api_key)
         self.model = model  # Use provided model or will be set during validation
+        self.switched_model = None  # Track if we switched to a new model
+
+    def _get_next_model(self) -> str | None:
+        """Get the next model in the fallback list after current model."""
+        if not self.model or self.model not in MODELS:
+            return None
+        current_idx = MODELS.index(self.model)
+        if current_idx + 1 < len(MODELS):
+            return MODELS[current_idx + 1]
+        return None
+
+    def _is_quota_error(self, error: Exception) -> bool:
+        """Check if the error is a quota/rate limit error."""
+        error_str = str(error).lower()
+        return "quota" in error_str or "resource_exhausted" in error_str or "429" in str(error)
 
     def validate_api_key(self) -> tuple[bool, str, list]:
         """
@@ -141,24 +156,42 @@ class AstrologyAgent:
         user_prompt = get_user_prompt(category, chart_content, year, dasha_lord)
         full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
 
-        try:
-            for chunk in self.client.models.generate_content_stream(
-                model=self.model,
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=1.0,
-                    max_output_tokens=32768,
-                )
-            ):
-                if chunk.text:
-                    yield chunk.text
+        models_to_try = [self.model]
+        next_model = self._get_next_model()
+        while next_model:
+            models_to_try.append(next_model)
+            # Get next after that
+            idx = MODELS.index(next_model)
+            next_model = MODELS[idx + 1] if idx + 1 < len(MODELS) else None
 
-        except Exception as e:
-            error_str = str(e).lower()
-            if "quota" in error_str or "limit" in error_str:
-                raise Exception("API quota exceeded. Please try again later.")
-            else:
-                raise Exception(f"Error generating reading: {str(e)}")
+        last_error = None
+        for model in models_to_try:
+            try:
+                if model != self.model:
+                    yield f"\n\n---\n*Switched to {model} due to quota limits*\n\n"
+                    self.switched_model = model
+
+                for chunk in self.client.models.generate_content_stream(
+                    model=model,
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=1.0,
+                        max_output_tokens=32768,
+                    )
+                ):
+                    if chunk.text:
+                        yield chunk.text
+                return  # Success, exit
+
+            except Exception as e:
+                if self._is_quota_error(e):
+                    last_error = e
+                    continue  # Try next model
+                else:
+                    raise Exception(f"Error generating reading: {str(e)}")
+
+        # All models exhausted
+        raise Exception("All models quota exceeded. Please try again later or upgrade to a paid API tier.")
 
     def stream_chat(self, prompt: str):
         """
@@ -170,17 +203,38 @@ class AstrologyAgent:
         if not self.model:
             raise Exception("No model available. Please validate API key first.")
 
-        try:
-            for chunk in self.client.models.generate_content_stream(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.8,
-                    max_output_tokens=8192,
-                )
-            ):
-                if chunk.text:
-                    yield chunk.text
+        models_to_try = [self.model]
+        next_model = self._get_next_model()
+        while next_model:
+            models_to_try.append(next_model)
+            idx = MODELS.index(next_model)
+            next_model = MODELS[idx + 1] if idx + 1 < len(MODELS) else None
 
-        except Exception as e:
-            raise Exception(f"Error: {str(e)}")
+        last_error = None
+        for model in models_to_try:
+            try:
+                if model != self.model:
+                    yield f"\n\n---\n*Switched to {model} due to quota limits*\n\n"
+                    self.switched_model = model
+
+                for chunk in self.client.models.generate_content_stream(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.8,
+                        max_output_tokens=8192,
+                    )
+                ):
+                    if chunk.text:
+                        yield chunk.text
+                return  # Success, exit
+
+            except Exception as e:
+                if self._is_quota_error(e):
+                    last_error = e
+                    continue  # Try next model
+                else:
+                    raise Exception(f"Error: {str(e)}")
+
+        # All models exhausted
+        raise Exception("All models quota exceeded. Please try again later or upgrade to a paid API tier.")
