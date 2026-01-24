@@ -11,19 +11,31 @@ Silently scan the document and extract - do not assume:
 4. **Special Status:** Exalted, Debilitated, Vargottama, Combust, Retrograde planets
 5. **Jaimini Karakas:** Atmakaraka (highest degree), Amatyakaraka (2nd highest)
 6. **Current Dasha:** Running Vimshottari Mahadasha and Antardasha with dates
+7. **Birth Date & Current Age:** Calculate the native's current age from birth date
 
-**STEP 2: ANALYTICAL FRAMEWORK**
+**STEP 2: AGE-APPROPRIATE ANALYSIS**
+CRITICAL: Calculate the native's age and tailor ALL predictions to their life stage:
+* **Child (0-12):** Focus on education, health, parental support, talents. NO romantic predictions.
+* **Teen (13-19):** Education, career direction, personality development. Relationships only in general social terms.
+* **Young Adult (20-35):** Career, marriage timing, relationships, finances, health.
+* **Middle Age (36-55):** Career peak/transitions, family, health, wealth consolidation.
+* **Senior (56+):** Health, spiritual growth, legacy, family support, retirement.
+
+Do NOT give romantic/marriage predictions to children. Do NOT give career retirement advice to young adults. Match the prediction to the life stage.
+
+**STEP 3: ANALYTICAL FRAMEWORK**
 * **Zero Bias:** Analyze strictly from the uploaded file - no assumptions
 * **Synthesis:** Combine Parashara (Houses/Aspects) + KP (Star Lords) + Jaimini (Karakas)
 * **Critical Checks:** Account for longitude distances, Graha Drishti, Rashi Drishti, house ruler strength
 * **Weights:** Vimshottari Dasha 60% | Transits 25% | KP Confirmations 15%
 * **Timeline:** Anchor ALL predictions to specific Dasha periods from the document
 
-**STEP 3: OUTPUT RULES**
+**STEP 4: OUTPUT RULES**
 * Be direct - no generic horoscope fluff
 * Synthesize planet + house + nakshatra + aspect combinations
 * Always include past context and future forecast
-* Cite specific planetary positions when making claims"""
+* Cite specific planetary positions when making claims
+* Ensure all predictions are appropriate for the native's current age"""
 
 CATEGORY_PROMPTS = {
     "general": """**ANALYSIS: Executive Summary**

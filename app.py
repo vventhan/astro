@@ -40,9 +40,23 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Main app background */
+    /* Main app background - force light theme */
     .stApp {
-        background: var(--background);
+        background: var(--background) !important;
+        color: var(--text-primary) !important;
+    }
+
+    /* Override dark mode text colors */
+    .stApp p, .stApp li, .stApp td, .stApp th, .stApp span, .stApp div, .stApp label {
+        color: var(--text-primary);
+    }
+
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp strong {
+        color: #000000 !important;
+    }
+
+    .stMarkdown {
+        color: var(--text-primary) !important;
     }
 
     /* Hide Streamlit elements */
@@ -188,6 +202,25 @@ st.markdown("""
         border: 1px solid var(--border-light) !important;
         border-radius: 12px !important;
         padding: 1rem !important;
+        color: var(--text-primary) !important;
+    }
+
+    /* Force dark text on light backgrounds */
+    [data-testid="stChatMessageContent"] p,
+    [data-testid="stChatMessageContent"] li,
+    [data-testid="stChatMessageContent"] td,
+    [data-testid="stChatMessageContent"] th,
+    [data-testid="stChatMessageContent"] span,
+    [data-testid="stChatMessageContent"] div {
+        color: var(--text-primary) !important;
+    }
+
+    [data-testid="stChatMessageContent"] h1,
+    [data-testid="stChatMessageContent"] h2,
+    [data-testid="stChatMessageContent"] h3,
+    [data-testid="stChatMessageContent"] h4,
+    [data-testid="stChatMessageContent"] strong {
+        color: #000000 !important;
     }
 
     /* User message */
