@@ -98,7 +98,7 @@ class AstrologyAgent:
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
                     temperature=1.0,
-                    max_output_tokens=8192,
+                    max_output_tokens=32768,
                 )
             )
             return response.text
@@ -135,7 +135,7 @@ class AstrologyAgent:
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
                     temperature=1.0,
-                    max_output_tokens=8192,
+                    max_output_tokens=32768,
                 )
             ):
                 if chunk.text:
@@ -164,7 +164,7 @@ class AstrologyAgent:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.8,
-                    max_output_tokens=2048,
+                    max_output_tokens=8192,
                 )
             ):
                 if chunk.text:
