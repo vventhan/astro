@@ -7,9 +7,10 @@ from .prompts import get_system_prompt, get_user_prompt
 
 # Available models to try (in order of preference)
 MODELS = [
-    "gemini-3-pro-preview",
-    "gemini-3-flash-preview",
-    "gemini-2.0-flash-001",
+    "gemini-3.0-pro-latest",
+    "gemini-3.0-thinking-exp-0121",
+    "gemini-2.5-pro-001",
+    "gemini-2.5-flash-001",
 ]
 
 
