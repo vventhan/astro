@@ -716,14 +716,15 @@ def show_main_app():
                         year = year_input if reading_type == "Annual" else None
                         dasha = dasha_lord if reading_type == "Dasha" else None
 
-                        response = st.write_stream(
-                            agent.stream_reading(
-                                category=category,
-                                chart_content=st.session_state.pdf_content,
-                                year=year,
-                                dasha_lord=dasha
+                        with st.spinner("Generating reading..."):
+                            response = st.write_stream(
+                                agent.stream_reading(
+                                    category=category,
+                                    chart_content=st.session_state.pdf_content,
+                                    year=year,
+                                    dasha_lord=dasha
+                                )
                             )
-                        )
                         st.session_state.last_response = response
                     except Exception as e:
                         st.error(str(e))
@@ -738,7 +739,8 @@ def show_main_app():
                     st.markdown(user_input)
 
                 with st.chat_message("assistant"):
-                    response = st.write_stream(stream_chat_response(user_input))
+                    with st.spinner("Thinking..."):
+                        response = st.write_stream(stream_chat_response(user_input))
                     st.session_state.last_response = response
 
             # Display last response (if exists and not currently streaming)
