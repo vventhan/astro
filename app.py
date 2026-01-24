@@ -308,21 +308,31 @@ st.markdown("""
     }
 
     /* Force dark text on light backgrounds */
+    [data-testid="stChatMessageContent"],
     [data-testid="stChatMessageContent"] p,
     [data-testid="stChatMessageContent"] li,
     [data-testid="stChatMessageContent"] td,
     [data-testid="stChatMessageContent"] th,
     [data-testid="stChatMessageContent"] span,
-    [data-testid="stChatMessageContent"] div {
-        color: var(--text-primary) !important;
+    [data-testid="stChatMessageContent"] div,
+    [data-testid="stChatMessageContent"] ul,
+    [data-testid="stChatMessageContent"] ol {
+        color: #1a202c !important;
     }
 
     [data-testid="stChatMessageContent"] h1,
     [data-testid="stChatMessageContent"] h2,
     [data-testid="stChatMessageContent"] h3,
     [data-testid="stChatMessageContent"] h4,
-    [data-testid="stChatMessageContent"] strong {
+    [data-testid="stChatMessageContent"] h5,
+    [data-testid="stChatMessageContent"] strong,
+    [data-testid="stChatMessageContent"] b {
         color: #000000 !important;
+    }
+
+    /* Streaming text fix */
+    .stMarkdown, .stMarkdown p, .stMarkdown span, .stMarkdown div {
+        color: #1a202c !important;
     }
 
     /* User message */
