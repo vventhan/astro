@@ -130,18 +130,56 @@ st.markdown("""
         align-items: end;
     }
 
-    /* Input styling */
+    /* Input styling - force light theme */
     .stTextInput > div > div > input,
-    .stSelectbox > div > div > div {
+    .stSelectbox > div > div > div,
+    .stNumberInput > div > div > input {
         border-radius: 8px !important;
         border: 1.5px solid var(--border) !important;
         font-size: 0.9rem !important;
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+    }
+
+    .stSelectbox > div > div {
+        background-color: #FFFFFF !important;
+    }
+
+    .stSelectbox [data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+    }
+
+    .stSelectbox [data-baseweb="select"] span {
+        color: #111827 !important;
+    }
+
+    .stTextInput > div > div > input::placeholder {
+        color: #9CA3AF !important;
     }
 
     .stTextInput > div > div > input:focus,
     .stSelectbox > div > div > div:focus {
         border-color: var(--primary) !important;
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+    }
+
+    /* Dropdown menu styling */
+    [data-baseweb="popover"] {
+        background-color: #FFFFFF !important;
+    }
+
+    [data-baseweb="menu"] {
+        background-color: #FFFFFF !important;
+    }
+
+    [data-baseweb="menu"] li {
+        color: #111827 !important;
+        background-color: #FFFFFF !important;
+    }
+
+    [data-baseweb="menu"] li:hover {
+        background-color: #F3F4F6 !important;
     }
 
     /* Button styling */
