@@ -557,6 +557,7 @@ def show_landing_page():
         st.markdown("""
         <div style="margin-top: 1.5rem; padding: 1rem; background: #f7fafc; border-radius: 8px; font-size: 0.75rem; color: #718096; line-height: 1.5;">
             <strong style="color: #4a5568;">Disclaimer:</strong> This is a fun AI project. AI-generated astrology readings are approximately 60-70% accurate and should not be used for major life decisions.<br><br>
+            <strong style="color: #4a5568;">Privacy:</strong> This is a serverless app that collects no data. By using your own API key, all queries go directly to your Google account — we never see or store your birth chart data or readings.<br><br>
             <strong style="color: #4a5568;">Free API limits:</strong> Gemini's free tier allows ~50 requests/day on the best model (Gemini 3 Pro). After that, the app falls back to faster but less accurate models. Limits reset daily. For unlimited usage, consider upgrading to a <a href="https://ai.google.dev/pricing" target="_blank" style="color: #4a5568;">paid API tier</a>.
         </div>
         """, unsafe_allow_html=True)
