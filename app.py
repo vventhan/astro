@@ -188,7 +188,7 @@ st.markdown("""
     /* Button styling - Clean dark buttons */
     .stButton > button {
         background: var(--primary) !important;
-        color: white !important;
+        color: #ffffff !important;
         border: none !important;
         border-radius: 6px !important;
         padding: 0.6rem 1.25rem !important;
@@ -198,6 +198,12 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
     }
 
+    .stButton > button p,
+    .stButton > button span,
+    .stButton > button div {
+        color: #ffffff !important;
+    }
+
     .stButton > button:hover {
         background: var(--primary-hover) !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
@@ -205,8 +211,13 @@ st.markdown("""
 
     .stButton > button:disabled {
         background: #cbd5e0 !important;
-        color: #a0aec0 !important;
+        color: #718096 !important;
         box-shadow: none !important;
+    }
+
+    .stButton > button:disabled p,
+    .stButton > button:disabled span {
+        color: #718096 !important;
     }
 
     /* Chat container */
