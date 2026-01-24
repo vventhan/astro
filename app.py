@@ -20,19 +20,22 @@ st.markdown("""
     /* Import Google Font */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Root variables */
+    /* Root variables - Clean professional theme */
     :root {
-        --primary: #4F46E5;
-        --primary-hover: #4338CA;
-        --primary-light: #818CF8;
-        --primary-bg: #EEF2FF;
-        --background: #FAFBFC;
-        --surface: #FFFFFF;
-        --text-primary: #111827;
-        --text-secondary: #6B7280;
-        --text-muted: #9CA3AF;
-        --border: #E5E7EB;
-        --border-light: #F3F4F6;
+        --primary: #1a1a2e;
+        --primary-hover: #16213e;
+        --primary-light: #4a5568;
+        --primary-bg: #f7fafc;
+        --background: #ffffff;
+        --surface: #ffffff;
+        --text-primary: #1a202c;
+        --text-secondary: #4a5568;
+        --text-muted: #718096;
+        --border: #e2e8f0;
+        --border-light: #edf2f7;
+        --accent: #2d3748;
+        --success: #48bb78;
+        --success-bg: #f0fff4;
     }
 
     /* Global font */
@@ -182,26 +185,27 @@ st.markdown("""
         background-color: #F3F4F6 !important;
     }
 
-    /* Button styling */
+    /* Button styling - Clean dark buttons */
     .stButton > button {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%) !important;
+        background: var(--primary) !important;
         color: white !important;
         border: none !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         padding: 0.6rem 1.25rem !important;
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        transition: all 0.15s ease !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
     }
 
     .stButton > button:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+        background: var(--primary-hover) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     }
 
     .stButton > button:disabled {
-        background: var(--border) !important;
-        transform: none !important;
+        background: #cbd5e0 !important;
+        color: #a0aec0 !important;
         box-shadow: none !important;
     }
 
@@ -263,47 +267,49 @@ st.markdown("""
 
     /* User message */
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
-        background: var(--primary-bg) !important;
-        border-color: var(--primary-light) !important;
+        background: #f8fafc !important;
+        border-color: var(--border) !important;
     }
 
     /* Chat input */
     .stChatInput {
-        border-radius: 8px !important;
+        border-radius: 6px !important;
     }
 
     .stChatInput > div {
-        border-radius: 8px !important;
-        border: 1.5px solid var(--border) !important;
+        border-radius: 6px !important;
+        border: 1px solid var(--border) !important;
     }
 
     .stChatInput > div:focus-within {
         border-color: var(--primary) !important;
-        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+        box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1) !important;
     }
 
-    /* File uploader compact */
+    /* File uploader */
     [data-testid="stFileUploader"] {
-        background: var(--background) !important;
-        border-radius: 8px !important;
-        border: 2px dashed var(--border) !important;
+        background: #fafafa !important;
+        border-radius: 6px !important;
+        border: 1px dashed var(--border) !important;
+    }
+
+    [data-testid="stFileUploader"]:hover {
+        border-color: var(--text-muted) !important;
     }
 
     [data-testid="stFileUploader"] section {
         padding: 0.5rem !important;
     }
 
-    /* Success badge */
-    .success-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        background: #ECFDF5;
-        color: #059669;
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 500;
+    [data-testid="stFileUploader"] button {
+        background: var(--primary) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    /* Success alert override */
+    .stAlert {
+        border-radius: 6px !important;
     }
 
     /* Welcome card */
@@ -423,7 +429,7 @@ def show_landing_page():
             <div class="landing-container">
                 <div style="font-size: 3rem; margin-bottom: 0.5rem;">✨</div>
                 <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem;">
-                    <span style="background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Vedic Astrology Agent</span>
+                    <span style="color: #1a202c; font-weight: 700;">Vedic Astrology Agent</span>
                 </h1>
                 <p style="color: #6B7280; margin-bottom: 0;">AI-powered birth chart readings</p>
             </div>
@@ -457,7 +463,7 @@ def show_landing_page():
 
         st.markdown("""
             <p style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #6B7280;">
-                <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #4F46E5;">Get a free API key</a>
+                <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2d3748; text-decoration: underline;">Get a free API key</a>
             </p>
         """, unsafe_allow_html=True)
 
