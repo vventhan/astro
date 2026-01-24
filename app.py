@@ -624,6 +624,20 @@ def show_main_app():
         )
         st.caption("Supports PDF from Astro-Sage, Jagannatha Hora, or other Vedic astrology software.")
 
+        with st.expander("How to generate a birth chart PDF from AstroSage"):
+            st.markdown("""
+1. Go to [astrosage.com](https://www.astrosage.com)
+2. Click on **"Free Kundli"** or **"Birth Chart"**
+3. Enter birth details (name, date of birth, time, place)
+4. Click **"Get Kundli"** or **"Generate"**
+5. Once the chart loads:
+   - Go to **File → Print**
+   - **Select all sections** (Lagna chart, Navamsa, Dasha periods, etc.)
+   - Change destination to **"Save as PDF"**
+   - Click **Save**
+6. Upload the saved PDF to this app
+            """)
+
         if uploaded_file:
             if uploaded_file.name != st.session_state.pdf_name:
                 with st.spinner("Processing..."):
