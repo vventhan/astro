@@ -38,9 +38,10 @@ def extract_text_from_pdf(pdf_file) -> str:
 
         return "\n\n".join(text_content)
 
-    except fitz.fitz.FileDataError:
-        raise ValueError("Unable to read PDF file. Please ensure it's a valid PDF.")
     except Exception as e:
-        if "No text content" in str(e):
+        error_str = str(e).lower()
+        if "no text content" in error_str:
             raise
+        elif "file" in error_str or "data" in error_str or "format" in error_str or "cannot" in error_str:
+            raise ValueError("Unable to read PDF file. Please ensure it's a valid PDF.")
         raise ValueError(f"Error processing PDF: {str(e)}")
