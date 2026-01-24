@@ -1,8 +1,5 @@
 """File processing module for birth chart files."""
 
-import mimetypes
-
-
 # Supported file types
 SUPPORTED_TYPES = {
     "pdf": "application/pdf",
