@@ -527,7 +527,7 @@ def show_landing_page():
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("**Enter your Gemini API Key**")
+        st.markdown('**Enter your Gemini API Key** · <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size: 0.9rem; font-weight: normal; color: #4a5568;">Get a free key</a>', unsafe_allow_html=True)
         st.caption("Your key is stored only in this session")
 
         api_key = st.text_input(
@@ -553,11 +553,6 @@ def show_landing_page():
                     else:
                         st.error(error_msg)
 
-        st.markdown("""
-            <p style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #6B7280;">
-                <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #2d3748; text-decoration: underline;">Get a free API key</a>
-            </p>
-        """, unsafe_allow_html=True)
 
 
 def stream_chat_response(user_message: str):
