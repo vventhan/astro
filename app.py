@@ -445,69 +445,76 @@ def get_chat_response(user_message: str) -> str:
 def show_main_app():
     """Display the main application with chat interface."""
 
-    # Header
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        st.markdown("### ✨ Vedic Astrology Agent")
-    with col3:
-        if st.button("🔄 New Session", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+    # Centered container
+    col_left, col_main, col_right = st.columns([1, 3, 1])
 
-    # Config panel
-    with st.container():
-        col1, col2, col3, col4 = st.columns([2, 1.5, 1.5, 1])
+    with col_main:
+        # Header row
+        header_col1, header_col2 = st.columns([3, 1])
+        with header_col1:
+            st.markdown("### ✨ Vedic Astrology Agent")
+        with header_col2:
+            if st.button("🔄 New Session", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
 
-        with col1:
-            uploaded_file = st.file_uploader(
-                "Birth Chart PDF",
-                type=["pdf"],
-                label_visibility="collapsed"
-            )
+        st.markdown("")  # Spacing
 
-            if uploaded_file:
-                if uploaded_file.name != st.session_state.pdf_name:
-                    with st.spinner("Processing..."):
-                        try:
-                            content = extract_text_from_pdf(uploaded_file)
-                            st.session_state.pdf_content = content
-                            st.session_state.pdf_name = uploaded_file.name
-                            st.session_state.chat_history = []  # Clear chat on new upload
-                        except ValueError as e:
-                            st.error(str(e))
+        # Upload section
+        uploaded_file = st.file_uploader(
+            "Upload your birth chart PDF",
+            type=["pdf"],
+            help="From Jagannatha Hora, Parashara's Light, Astro-Sage, or any Vedic astrology software"
+        )
 
-                if st.session_state.pdf_content:
-                    st.markdown(f'<span class="success-badge">✓ {uploaded_file.name}</span>', unsafe_allow_html=True)
+        if uploaded_file:
+            if uploaded_file.name != st.session_state.pdf_name:
+                with st.spinner("Processing..."):
+                    try:
+                        content = extract_text_from_pdf(uploaded_file)
+                        st.session_state.pdf_content = content
+                        st.session_state.pdf_name = uploaded_file.name
+                        st.session_state.chat_history = []
+                    except ValueError as e:
+                        st.error(str(e))
 
-        with col2:
+            if st.session_state.pdf_content:
+                st.success(f"Chart loaded: {uploaded_file.name}")
+
+        st.markdown("")  # Spacing
+
+        # Reading options row
+        opt_col1, opt_col2, opt_col3 = st.columns([2, 2, 1.5])
+
+        with opt_col1:
             reading_type = st.selectbox(
                 "Reading Type",
-                options=["General", "Relationship", "Career", "Health", "Wealth", "Dasha", "Annual"],
-                label_visibility="visible"
+                options=["General", "Relationship", "Career", "Health", "Wealth", "Dasha", "Annual"]
             )
 
-        with col3:
-            # Conditional inputs
+        with opt_col2:
+            current_year = datetime.now().year
+            year_input = current_year
+            dasha_lord = None
+
             if reading_type == "Annual":
-                current_year = datetime.now().year
                 year_input = st.number_input(
                     "Year",
                     min_value=current_year - 10,
                     max_value=current_year + 10,
-                    value=current_year,
-                    label_visibility="visible"
+                    value=current_year
                 )
             elif reading_type == "Dasha":
                 dasha_lord = st.selectbox(
                     "Dasha Lord",
-                    options=["Auto-detect", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"],
-                    label_visibility="visible"
+                    options=["Auto-detect", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
                 )
             else:
-                st.markdown("<div style='height: 52px'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height: 76px'></div>", unsafe_allow_html=True)
 
-        with col4:
+        with opt_col3:
+            st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
             get_reading_disabled = st.session_state.pdf_content is None
             if st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled):
                 if st.session_state.pdf_content:
@@ -530,7 +537,6 @@ def show_main_app():
                                 dasha_lord=dasha
                             )
 
-                            # Add to chat history
                             st.session_state.chat_history.append({
                                 "role": "user",
                                 "content": f"Give me a {reading_type} reading" + (f" for {year_input}" if reading_type == "Annual" else "")
@@ -543,53 +549,45 @@ def show_main_app():
                         except Exception as e:
                             st.error(str(e))
 
-    st.markdown("---")
+        st.markdown("---")
 
-    # Chat interface
-    if st.session_state.pdf_content:
-        # Display chat messages
-        chat_container = st.container()
+        # Chat interface
+        if st.session_state.pdf_content:
+            # Display chat messages
+            chat_container = st.container()
 
-        with chat_container:
-            if not st.session_state.chat_history:
-                st.markdown("""
-                    <div class="welcome-card">
-                        <div class="welcome-icon">🌟</div>
-                        <p class="welcome-title">Chart Ready</p>
-                        <p class="welcome-text">Select a reading type above, or ask any question about your chart below.</p>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                for message in st.session_state.chat_history:
-                    with st.chat_message(message["role"]):
-                        st.markdown(message["content"])
+            with chat_container:
+                if not st.session_state.chat_history:
+                    st.markdown("""
+                        <div class="welcome-card">
+                            <div class="welcome-icon">🌟</div>
+                            <p class="welcome-title">Chart Ready</p>
+                            <p class="welcome-text">Select a reading type above, or ask any question about your chart below.</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    for message in st.session_state.chat_history:
+                        with st.chat_message(message["role"]):
+                            st.markdown(message["content"])
 
-        # Chat input
-        if user_input := st.chat_input("Ask a question about your chart..."):
-            # Add user message
-            st.session_state.chat_history.append({
-                "role": "user",
-                "content": user_input
-            })
-
-            # Get response
-            with st.spinner("Thinking..."):
-                response = get_chat_response(user_input)
+            # Chat input
+            if user_input := st.chat_input("Ask a question about your chart..."):
                 st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": response
+                    "role": "user",
+                    "content": user_input
                 })
 
-            st.rerun()
+                with st.spinner("Thinking..."):
+                    response = get_chat_response(user_input)
+                    st.session_state.chat_history.append({
+                        "role": "assistant",
+                        "content": response
+                    })
 
-    else:
-        st.markdown("""
-            <div class="welcome-card">
-                <div class="welcome-icon">📄</div>
-                <p class="welcome-title">Upload Your Birth Chart</p>
-                <p class="welcome-text">Upload a PDF from Jagannatha Hora, Parashara's Light, Astro-Sage, or any Vedic astrology software.</p>
-            </div>
-        """, unsafe_allow_html=True)
+                st.rerun()
+
+        else:
+            st.info("Upload a birth chart PDF to get started")
 
 
 def main():
