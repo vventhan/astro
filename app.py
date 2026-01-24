@@ -611,13 +611,13 @@ def show_main_app():
         header_col1, header_col2 = st.columns([3, 1])
         with header_col1:
             st.markdown("### ✨ Vedic Astrology Agent")
+            if st.session_state.gemini_model:
+                st.caption(f"Using {st.session_state.gemini_model}")
         with header_col2:
             if st.button("🔄 New Session", use_container_width=True):
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
                 st.rerun()
-
-        st.markdown("")  # Spacing
 
         # Upload section
         uploaded_file = st.file_uploader(
