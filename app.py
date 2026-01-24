@@ -406,8 +406,10 @@ if "pdf_content" not in st.session_state:
     st.session_state.pdf_content = None
 if "pdf_name" not in st.session_state:
     st.session_state.pdf_name = None
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+if "last_query" not in st.session_state:
+    st.session_state.last_query = None
+if "last_response" not in st.session_state:
+    st.session_state.last_response = None
 if "gemini_model" not in st.session_state:
     st.session_state.gemini_model = None
 
@@ -467,11 +469,10 @@ def stream_chat_response(user_message: str):
         model=st.session_state.gemini_model
     )
 
-    # Build context from chat history
-    history_context = ""
-    for msg in st.session_state.chat_history[-6:]:
-        role = "User" if msg["role"] == "user" else "Astrologer"
-        history_context += f"{role}: {msg['content']}\n\n"
+    # Build context from last response if available
+    context = ""
+    if st.session_state.last_response:
+        context = f"Previous reading:\n{st.session_state.last_response[:2000]}...\n\n"
 
     today = datetime.now().strftime("%B %d, %Y")
 
@@ -482,10 +483,7 @@ def stream_chat_response(user_message: str):
 **CHART DATA:**
 {st.session_state.pdf_content}
 
-**CONVERSATION HISTORY:**
-{history_context}
-
-**USER'S QUESTION:** {user_message}
+{context}**USER'S QUESTION:** {user_message}
 
 **INSTRUCTIONS:**
 - Answer based strictly on the chart data provided
@@ -534,7 +532,8 @@ def show_main_app():
                         content = extract_text_from_pdf(uploaded_file)
                         st.session_state.pdf_content = content
                         st.session_state.pdf_name = uploaded_file.name
-                        st.session_state.chat_history = []
+                        st.session_state.last_query = None
+                        st.session_state.last_response = None
                     except ValueError as e:
                         st.error(str(e))
 
@@ -579,16 +578,33 @@ def show_main_app():
             get_reading_disabled = st.session_state.pdf_content is None
             get_reading = st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled)
 
+        # Chat input for follow-up questions (always visible when PDF loaded)
+        if st.session_state.pdf_content:
+            st.markdown("**Ask a follow-up question**")
+            input_col1, input_col2 = st.columns([4, 1])
+            with input_col1:
+                user_input = st.text_input(
+                    "Question",
+                    placeholder="Ask about your chart...",
+                    label_visibility="collapsed",
+                    key="chat_input"
+                )
+            with input_col2:
+                send_clicked = st.button("Send", use_container_width=True, type="primary")
+
         st.markdown("---")
 
-        # Chat interface
+        # Response area
         if st.session_state.pdf_content:
-            # Handle "Get Reading" button with streaming (shows at top)
+            # Handle "Get Reading" button with streaming
             if get_reading:
                 category = reading_type.lower()
                 user_msg = f"Give me a {reading_type} reading" + (f" for {year_input}" if reading_type == "Annual" else "")
 
-                st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                # Clear previous and store new query
+                st.session_state.last_query = user_msg
+                st.session_state.last_response = None
+
                 with st.chat_message("user"):
                     st.markdown(user_msg)
 
@@ -609,51 +625,39 @@ def show_main_app():
                                 dasha_lord=dasha
                             )
                         )
-                        st.session_state.chat_history.append({"role": "assistant", "content": response})
+                        st.session_state.last_response = response
                     except Exception as e:
                         st.error(str(e))
 
-                st.markdown("---")
-
-            # Chat input for follow-up questions
-            st.markdown("**Ask a follow-up question**")
-            input_col1, input_col2 = st.columns([4, 1])
-            with input_col1:
-                user_input = st.text_input(
-                    "Question",
-                    placeholder="Ask about your chart...",
-                    label_visibility="collapsed",
-                    key="chat_input"
-                )
-            with input_col2:
-                send_clicked = st.button("Send", use_container_width=True, type="primary")
-
             # Handle chat input with streaming
-            if send_clicked and user_input:
-                st.session_state.chat_history.append({"role": "user", "content": user_input})
+            elif send_clicked and user_input:
+                # Clear previous and store new query
+                st.session_state.last_query = user_input
+                st.session_state.last_response = None
+
                 with st.chat_message("user"):
                     st.markdown(user_input)
 
                 with st.chat_message("assistant"):
                     response = st.write_stream(stream_chat_response(user_input))
-                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    st.session_state.last_response = response
 
-                st.markdown("---")
+            # Display last response (if exists and not currently streaming)
+            elif st.session_state.get("last_response"):
+                with st.chat_message("user"):
+                    st.markdown(st.session_state.last_query)
+                with st.chat_message("assistant"):
+                    st.markdown(st.session_state.last_response)
 
-            # Display existing chat messages (newest first)
-            if not st.session_state.chat_history and not get_reading:
+            # Welcome message when no response yet
+            elif not st.session_state.get("last_response"):
                 st.markdown("""
                     <div class="welcome-card">
                         <div class="welcome-icon">🌟</div>
                         <p class="welcome-title">Chart Ready</p>
-                        <p class="welcome-text">Select a reading type above, or ask a question below.</p>
+                        <p class="welcome-text">Select a reading type above, or ask a question.</p>
                     </div>
                 """, unsafe_allow_html=True)
-            elif st.session_state.chat_history:
-                st.markdown("#### Previous Readings")
-                for message in reversed(st.session_state.chat_history):
-                    with st.chat_message(message["role"]):
-                        st.markdown(message["content"])
 
         else:
             st.info("Upload a birth chart PDF to get started")
