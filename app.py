@@ -167,22 +167,47 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
     }
 
-    /* Dropdown menu styling */
-    [data-baseweb="popover"] {
+    /* Dropdown menu styling - force light theme */
+    [data-baseweb="popover"],
+    [data-baseweb="popover"] > div,
+    [data-baseweb="menu"],
+    [data-baseweb="select"] [data-baseweb="popover"],
+    div[data-baseweb="popover"] {
         background-color: #FFFFFF !important;
+        background: #FFFFFF !important;
     }
 
-    [data-baseweb="menu"] {
+    [data-baseweb="menu"],
+    [data-baseweb="menu"] ul,
+    ul[role="listbox"] {
         background-color: #FFFFFF !important;
+        background: #FFFFFF !important;
     }
 
-    [data-baseweb="menu"] li {
-        color: #111827 !important;
+    [data-baseweb="menu"] li,
+    ul[role="listbox"] li,
+    li[role="option"] {
+        color: #1a202c !important;
         background-color: #FFFFFF !important;
+        background: #FFFFFF !important;
     }
 
-    [data-baseweb="menu"] li:hover {
-        background-color: #F3F4F6 !important;
+    [data-baseweb="menu"] li:hover,
+    ul[role="listbox"] li:hover,
+    li[role="option"]:hover,
+    li[aria-selected="true"] {
+        background-color: #f7fafc !important;
+        background: #f7fafc !important;
+    }
+
+    /* Dropdown arrow visibility */
+    .stSelectbox svg {
+        fill: #4a5568 !important;
+        color: #4a5568 !important;
+    }
+
+    .stSelectbox [data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
     }
 
     /* Button styling - Clean dark buttons */
