@@ -266,10 +266,8 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        min-height: 80vh;
         text-align: center;
-        padding: 1rem;
+        padding: 2rem 1rem;
     }
 
     .landing-card {
@@ -280,6 +278,7 @@ st.markdown("""
         max-width: 400px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         border: 1px solid var(--border-light);
+        margin-top: 1rem;
     }
 
     /* Expander styling */
@@ -345,19 +344,18 @@ if "gemini_model" not in st.session_state:
 def show_landing_page():
     """Display the landing page with API key input."""
 
-    st.markdown("""
-        <div class="landing-container">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">✨</div>
-            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                <span style="background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Vedic Astrology Agent</span>
-            </h1>
-            <p style="color: #6B7280; margin-bottom: 2rem;">AI-powered birth chart readings</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown('<div class="landing-card">', unsafe_allow_html=True)
+        st.markdown("""
+            <div class="landing-container">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">✨</div>
+                <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem;">
+                    <span style="background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Vedic Astrology Agent</span>
+                </h1>
+                <p style="color: #6B7280; margin-bottom: 0;">AI-powered birth chart readings</p>
+            </div>
+        """, unsafe_allow_html=True)
+
         st.markdown("**Enter your Gemini API Key**")
         st.caption("Your key is stored only in this session")
 
@@ -389,7 +387,6 @@ def show_landing_page():
                 <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #4F46E5;">Get a free API key</a>
             </p>
         """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def stream_chat_response(user_message: str):
@@ -548,10 +545,20 @@ def show_main_app():
                 st.markdown("---")
 
             # Chat input for follow-up questions
-            user_input = st.chat_input("Ask a follow-up question about your chart...")
+            st.markdown("**Ask a follow-up question**")
+            input_col1, input_col2 = st.columns([4, 1])
+            with input_col1:
+                user_input = st.text_input(
+                    "Question",
+                    placeholder="Ask about your chart...",
+                    label_visibility="collapsed",
+                    key="chat_input"
+                )
+            with input_col2:
+                send_clicked = st.button("Send", use_container_width=True, type="primary")
 
             # Handle chat input with streaming
-            if user_input:
+            if send_clicked and user_input:
                 st.session_state.chat_history.append({"role": "user", "content": user_input})
                 with st.chat_message("user"):
                     st.markdown(user_input)

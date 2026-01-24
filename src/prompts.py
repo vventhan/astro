@@ -530,10 +530,18 @@ Analyze this chart and provide the {category.upper()} reading. Extract actual da
 
     if category == "dasha":
         if dasha_lord and dasha_lord != "Auto-detect":
-            # Extract just the planet name (e.g., "Sun (Surya)" -> "Sun")
             planet = dasha_lord.split(" (")[0] if " (" in dasha_lord else dasha_lord
-            base_prompt += f"\n\n**FOCUS: Analyze the {planet} Mahadasha specifically, along with whatever Antardasha is currently running under it.**"
+            base_prompt += f"""
+
+**FOCUS: Analyze the {planet} Mahadasha period comprehensively.**
+
+First, determine the temporal status of this Mahadasha using today's date ({today}):
+- **PAST:** If the {planet} Mahadasha has already ended, analyze what happened during that period and its lasting effects
+- **CURRENT:** If the {planet} Mahadasha is currently running, analyze the present situation and what remains
+- **FUTURE:** If the {planet} Mahadasha has not yet started, analyze what to expect when it begins
+
+Then provide the full analysis including ALL Antardashas within the {planet} Mahadasha (with their exact dates from the chart), not just one Antardasha."""
         else:
-            base_prompt += "\n\n**FOCUS: Identify and analyze the CURRENT running Mahadasha and Antardasha from the dasha table in the chart.**"
+            base_prompt += f"\n\n**FOCUS: Identify and analyze the CURRENT running Mahadasha and Antardasha from the dasha table in the chart, using today's date ({today}).**"
 
     return base_prompt
