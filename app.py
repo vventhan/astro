@@ -22,9 +22,9 @@ st.markdown("""
 
     /* Root variables - Clean professional theme */
     :root {
-        --primary: #1a1a2e;
-        --primary-hover: #16213e;
-        --primary-light: #4a5568;
+        --primary: #4a5568;
+        --primary-hover: #2d3748;
+        --primary-light: #718096;
         --primary-bg: #f7fafc;
         --background: #ffffff;
         --surface: #ffffff;
@@ -677,7 +677,7 @@ def show_main_app():
                 """, unsafe_allow_html=True)
 
         else:
-            st.info("Upload a birth chart PDF to get started")
+            st.info("Upload your birth chart as PDF or image from Astro-Sage, Jagannatha Hora, or other Vedic astrology software. Complete PDF reports work best.")
 
 
 def main():
