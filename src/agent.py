@@ -3,7 +3,7 @@
 from google import genai
 from google.genai import types
 
-from .prompts import get_system_prompt, get_user_prompt
+from .prompts import get_system_prompt, get_user_prompt, EXTRACTION_PROMPT
 
 # Available models to try (in order of preference)
 MODELS = [
@@ -91,6 +91,55 @@ class AstrologyAgent:
         else:
             return False, f"Could not connect to Gemini API: {last_error}", tried_models
 
+    def extract_chart_data(self, file_bytes: bytes, mime_type: str) -> str:
+        """
+        Extract astrological data from a birth chart file.
+
+        Args:
+            file_bytes: Raw bytes of the uploaded file
+            mime_type: MIME type of the file
+
+        Returns:
+            Extracted chart data as structured text
+        """
+        if not self.model:
+            raise Exception("No model available. Please validate API key first.")
+
+        contents = [
+            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            EXTRACTION_PROMPT
+        ]
+
+        models_to_try = [self.model]
+        next_model = self._get_next_model()
+        while next_model:
+            models_to_try.append(next_model)
+            idx = MODELS.index(next_model)
+            next_model = MODELS[idx + 1] if idx + 1 < len(MODELS) else None
+
+        for model in models_to_try:
+            try:
+                if model != self.model:
+                    self.switched_model = model
+
+                response = self.client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        temperature=0.3,  # Lower temp for accurate extraction
+                        max_output_tokens=8192,
+                    )
+                )
+                return response.text
+
+            except Exception as e:
+                if self._is_quota_error(e):
+                    continue
+                else:
+                    raise Exception(f"Error extracting chart data: {str(e)}")
+
+        raise Exception("All models quota exceeded. Please try again later.")
+
     def get_reading(self, category: str, chart_content: str, year: int = None, dasha_lord: str = None) -> str:
         """
         Generate an astrology reading for the given category.
@@ -140,14 +189,13 @@ class AstrologyAgent:
             else:
                 raise Exception(f"Error generating reading: {str(e)}")
 
-    def stream_reading(self, category: str, file_bytes: bytes, mime_type: str, year: int = None, dasha_lord: str = None):
+    def stream_reading(self, category: str, chart_data: str, year: int = None, dasha_lord: str = None):
         """
         Stream an astrology reading for the given category.
 
         Args:
             category: Type of reading
-            file_bytes: Raw bytes of the uploaded file (PDF or image)
-            mime_type: MIME type of the file
+            chart_data: Extracted chart data as text
             year: Year for annual predictions
             dasha_lord: Specific dasha lord to analyze
 
@@ -161,14 +209,11 @@ class AstrologyAgent:
             raise Exception("No model available. Please validate API key first.")
 
         system_prompt = get_system_prompt(category)
-        user_prompt = get_user_prompt(category, year, dasha_lord)
+        user_prompt = get_user_prompt(category, chart_data, year, dasha_lord)
         full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
 
-        # Create multimodal content with file and text
-        contents = [
-            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-            full_prompt
-        ]
+        # Text-only content (chart data already extracted)
+        contents = full_prompt
 
         models_to_try = [self.model]
         next_model = self._get_next_model()
@@ -206,14 +251,12 @@ class AstrologyAgent:
         # All models exhausted
         raise Exception("All models quota exceeded. Please try again later or upgrade to a paid API tier.")
 
-    def stream_chat(self, prompt: str, file_bytes: bytes = None, mime_type: str = None):
+    def stream_chat(self, prompt: str):
         """
         Stream a chat response.
 
         Args:
-            prompt: The chat prompt
-            file_bytes: Optional file bytes for context
-            mime_type: MIME type of the file
+            prompt: The chat prompt (should include chart data context)
 
         Yields:
             Text chunks as they are generated
@@ -221,14 +264,7 @@ class AstrologyAgent:
         if not self.model:
             raise Exception("No model available. Please validate API key first.")
 
-        # Create content with optional file
-        if file_bytes and mime_type:
-            contents = [
-                types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-                prompt
-            ]
-        else:
-            contents = prompt
+        contents = prompt
 
         models_to_try = [self.model]
         next_model = self._get_next_model()

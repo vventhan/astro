@@ -500,16 +500,12 @@ if "api_key" not in st.session_state:
     st.session_state.api_key = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = False
-if "file_bytes" not in st.session_state:
-    st.session_state.file_bytes = None
-if "file_mime_type" not in st.session_state:
-    st.session_state.file_mime_type = None
+if "chart_data" not in st.session_state:
+    st.session_state.chart_data = None
 if "file_name" not in st.session_state:
     st.session_state.file_name = None
-if "last_query" not in st.session_state:
-    st.session_state.last_query = None
-if "last_response" not in st.session_state:
-    st.session_state.last_response = None
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 if "gemini_model" not in st.session_state:
     st.session_state.gemini_model = None
 
@@ -576,32 +572,40 @@ def stream_chat_response(user_message: str):
         model=st.session_state.gemini_model
     )
 
-    # Build context from last response if available
-    context = ""
-    if st.session_state.last_response:
-        context = f"Previous reading:\n{st.session_state.last_response[:2000]}...\n\n"
+    # Build chat history context (last 5 exchanges to limit tokens)
+    history_context = ""
+    recent_history = st.session_state.chat_history[-10:]  # Last 5 Q&A pairs
+    if recent_history:
+        history_context = "**CONVERSATION HISTORY:**\n"
+        for entry in recent_history:
+            role = "User" if entry["role"] == "user" else "Astrologer"
+            # Truncate long messages
+            content = entry["content"][:500] + "..." if len(entry["content"]) > 500 else entry["content"]
+            history_context += f"{role}: {content}\n\n"
 
     today = datetime.now().strftime("%B %d, %Y")
 
-    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart (attached).
+    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart.
 
 **TODAY'S DATE:** {today}
 
-{context}**USER'S QUESTION:** {user_message}
+**CHART DATA:**
+{st.session_state.chart_data}
+
+---
+
+{history_context}**USER'S CURRENT QUESTION:** {user_message}
 
 **INSTRUCTIONS:**
-- Answer based strictly on the attached birth chart
+- Answer based strictly on the chart data provided
 - Be conversational but precise
 - Reference specific planetary positions when relevant
 - Keep responses focused and not too long unless detail is requested
-- Use today's date to determine current dasha periods"""
+- Use today's date to determine current dasha periods
+- Consider the conversation history for context"""
 
     try:
-        for chunk in agent.stream_chat(
-            prompt,
-            file_bytes=st.session_state.file_bytes,
-            mime_type=st.session_state.file_mime_type
-        ):
+        for chunk in agent.stream_chat(prompt):
             yield chunk
         # Update model if it was switched due to quota
         if agent.switched_model:
@@ -658,18 +662,27 @@ def show_main_app():
 
         if uploaded_file:
             if uploaded_file.name != st.session_state.file_name:
-                with st.spinner("Processing..."):
+                with st.spinner("Extracting chart data..."):
                     try:
                         file_bytes, mime_type = process_uploaded_file(uploaded_file)
-                        st.session_state.file_bytes = file_bytes
-                        st.session_state.file_mime_type = mime_type
+                        # Extract chart data using LLM
+                        agent = AstrologyAgent(
+                            st.session_state.api_key,
+                            model=st.session_state.gemini_model
+                        )
+                        chart_data = agent.extract_chart_data(file_bytes, mime_type)
+                        st.session_state.chart_data = chart_data
                         st.session_state.file_name = uploaded_file.name
-                        st.session_state.last_query = None
-                        st.session_state.last_response = None
+                        st.session_state.chat_history = []  # Reset chat history for new chart
+                        # Update model if switched during extraction
+                        if agent.switched_model:
+                            st.session_state.gemini_model = agent.switched_model
                     except ValueError as e:
                         st.error(str(e))
+                    except Exception as e:
+                        st.error(f"Error extracting chart: {str(e)}")
 
-            if st.session_state.file_bytes:
+            if st.session_state.chart_data:
                 st.success(f"Chart loaded: {uploaded_file.name}")
 
         st.markdown("")  # Spacing
@@ -707,11 +720,11 @@ def show_main_app():
 
         with opt_col3:
             st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
-            get_reading_disabled = st.session_state.file_bytes is None
+            get_reading_disabled = st.session_state.chart_data is None
             get_reading = st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled)
 
-        # Chat input for follow-up questions (always visible when file loaded)
-        if st.session_state.file_bytes:
+        # Chat input for follow-up questions (always visible when chart loaded)
+        if st.session_state.chart_data:
             st.markdown("**Ask a follow-up question**")
             input_col1, input_col2 = st.columns([4, 1])
             with input_col1:
@@ -727,15 +740,11 @@ def show_main_app():
         st.markdown("---")
 
         # Response area
-        if st.session_state.file_bytes:
+        if st.session_state.chart_data:
             # Handle "Get Reading" button with streaming
             if get_reading:
                 category = reading_type.lower()
                 user_msg = f"Give me a {reading_type} reading" + (f" for {year_input}" if reading_type == "Annual" else "")
-
-                # Clear previous and store new query
-                st.session_state.last_query = user_msg
-                st.session_state.last_response = None
 
                 with st.chat_message("user"):
                     st.markdown(user_msg)
@@ -753,13 +762,14 @@ def show_main_app():
                             response = st.write_stream(
                                 agent.stream_reading(
                                     category=category,
-                                    file_bytes=st.session_state.file_bytes,
-                                    mime_type=st.session_state.file_mime_type,
+                                    chart_data=st.session_state.chart_data,
                                     year=year,
                                     dasha_lord=dasha
                                 )
                             )
-                        st.session_state.last_response = response
+                        # Add to chat history
+                        st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                        st.session_state.chat_history.append({"role": "assistant", "content": response})
                         # Update model if it was switched due to quota
                         if agent.switched_model:
                             st.session_state.gemini_model = agent.switched_model
@@ -769,27 +779,24 @@ def show_main_app():
 
             # Handle chat input with streaming
             elif send_clicked and user_input:
-                # Clear previous and store new query
-                st.session_state.last_query = user_input
-                st.session_state.last_response = None
-
                 with st.chat_message("user"):
                     st.markdown(user_input)
 
                 with st.chat_message("assistant"):
                     with st.spinner("Thinking..."):
                         response = st.write_stream(stream_chat_response(user_input))
-                    st.session_state.last_response = response
+                    # Add to chat history
+                    st.session_state.chat_history.append({"role": "user", "content": user_input})
+                    st.session_state.chat_history.append({"role": "assistant", "content": response})
 
-            # Display last response (if exists and not currently streaming)
-            elif st.session_state.get("last_response"):
-                with st.chat_message("user"):
-                    st.markdown(st.session_state.last_query)
-                with st.chat_message("assistant"):
-                    st.markdown(st.session_state.last_response)
+            # Display chat history
+            elif st.session_state.chat_history:
+                for entry in st.session_state.chat_history:
+                    with st.chat_message(entry["role"]):
+                        st.markdown(entry["content"])
 
-            # Welcome message when no response yet
-            elif not st.session_state.get("last_response"):
+            # Welcome message when no chat yet
+            else:
                 st.markdown("""
                     <div class="welcome-card">
                         <div class="welcome-icon">🌟</div>

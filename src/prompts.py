@@ -519,7 +519,7 @@ def get_system_prompt(category: str) -> str:
     return f"{BASE_SYSTEM_PROMPT}\n\n{category_prompt}"
 
 
-def get_user_prompt(category: str, year: int = None, dasha_lord: str = None) -> str:
+def get_user_prompt(category: str, chart_data: str, year: int = None, dasha_lord: str = None) -> str:
     """Generate the user prompt for chart analysis."""
     from datetime import datetime
     today = datetime.now().strftime("%B %d, %Y")
@@ -528,13 +528,23 @@ def get_user_prompt(category: str, year: int = None, dasha_lord: str = None) -> 
         base_prompt = f"""**TODAY'S DATE:** {today}
 **TARGET YEAR FOR PREDICTIONS:** {year}
 
-Analyze the attached birth chart document and provide the ANNUAL reading for the year {year}. Extract actual data from the chart - do not hallucinate positions or dates.
+**EXTRACTED CHART DATA:**
+{chart_data}
+
+---
+
+Analyze the chart data above and provide the ANNUAL reading for the year {year}. Use the extracted data - do not hallucinate positions or dates.
 
 IMPORTANT: Generate predictions specifically for the year {year}, NOT the current date. The monthly breakdown should cover January {year} through December {year}. Use planetary transit positions for {year}."""
     else:
         base_prompt = f"""**TODAY'S DATE:** {today}
 
-Analyze the attached birth chart document and provide the {category.upper()} reading. Extract actual data from the chart - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
+**EXTRACTED CHART DATA:**
+{chart_data}
+
+---
+
+Analyze the chart data above and provide the {category.upper()} reading. Use the extracted data - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
 
     if category == "dasha":
         if dasha_lord and dasha_lord != "Auto-detect":
@@ -553,3 +563,59 @@ Then provide the full analysis including ALL Antardashas within the {planet} Mah
             base_prompt += f"\n\n**FOCUS: Identify and analyze the CURRENT running Mahadasha and Antardasha from the dasha table in the chart, using today's date ({today}).**"
 
     return base_prompt
+
+
+EXTRACTION_PROMPT = """Extract ALL astrological data from this birth chart document. Be thorough and precise.
+
+**OUTPUT FORMAT:**
+
+## BIRTH DETAILS
+- Name: [if visible]
+- Date of Birth: [DD/MM/YYYY]
+- Time of Birth: [HH:MM AM/PM]
+- Place of Birth: [City, Country]
+- Current Age: [calculated]
+
+## ASCENDANT (LAGNA)
+- Sign: [sign name]
+- Degree: [degrees and minutes]
+- Nakshatra: [nakshatra name and pada]
+- Lagna Lord: [planet] in [house] in [sign]
+
+## MOON SIGN (RASHI)
+- Sign: [sign name]
+- Degree: [degrees and minutes]
+- Nakshatra: [nakshatra name and pada]
+
+## PLANETARY POSITIONS
+| Planet | Sign | House | Degree | Nakshatra | Status |
+|--------|------|-------|--------|-----------|--------|
+| Sun | | | | | [Exalted/Debilitated/Combust/etc.] |
+| Moon | | | | | |
+| Mars | | | | | |
+| Mercury | | | | | |
+| Jupiter | | | | | |
+| Venus | | | | | |
+| Saturn | | | | | |
+| Rahu | | | | | |
+| Ketu | | | | | |
+
+## HOUSE CUSPS (if available)
+[List houses 1-12 with signs and degrees]
+
+## VIMSHOTTARI DASHA PERIODS
+[List ALL Mahadasha periods with start and end dates]
+[List current Mahadasha > Antardasha > Pratyantardasha with dates]
+
+## SPECIAL YOGAS & COMBINATIONS
+[List any yogas mentioned or visible in the chart]
+
+## DIVISIONAL CHARTS (if available)
+- Navamsa (D9): [Key positions]
+- Dashamsa (D10): [Key positions if visible]
+
+## ADDITIONAL NOTES
+[Any other relevant information from the document]
+
+---
+IMPORTANT: Extract ONLY what is visible in the document. Do not assume or calculate positions not shown. If something is not visible, write "Not visible in document"."""
