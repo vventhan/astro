@@ -519,7 +519,7 @@ def get_system_prompt(category: str) -> str:
     return f"{BASE_SYSTEM_PROMPT}\n\n{category_prompt}"
 
 
-def get_user_prompt(category: str, chart_data: str, year: int = None, dasha_lord: str = None) -> str:
+def get_user_prompt(category: str, year: int = None, dasha_lord: str = None) -> str:
     """Generate the user prompt for chart analysis."""
     from datetime import datetime
     today = datetime.now().strftime("%B %d, %Y")
@@ -528,23 +528,13 @@ def get_user_prompt(category: str, chart_data: str, year: int = None, dasha_lord
         base_prompt = f"""**TODAY'S DATE:** {today}
 **TARGET YEAR FOR PREDICTIONS:** {year}
 
-**EXTRACTED CHART DATA:**
-{chart_data}
-
----
-
-Analyze the chart data above and provide the ANNUAL reading for the year {year}. Use the extracted data - do not hallucinate positions or dates.
+Analyze the attached birth chart and provide the ANNUAL reading for the year {year}. Extract actual data from the chart - do not hallucinate positions or dates.
 
 IMPORTANT: Generate predictions specifically for the year {year}, NOT the current date. The monthly breakdown should cover January {year} through December {year}. Use planetary transit positions for {year}."""
     else:
         base_prompt = f"""**TODAY'S DATE:** {today}
 
-**EXTRACTED CHART DATA:**
-{chart_data}
-
----
-
-Analyze the chart data above and provide the {category.upper()} reading. Use the extracted data - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
+Analyze the attached birth chart and provide the {category.upper()} reading. Extract actual data from the chart - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
 
     if category == "dasha":
         if dasha_lord and dasha_lord != "Auto-detect":

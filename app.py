@@ -500,8 +500,10 @@ if "api_key" not in st.session_state:
     st.session_state.api_key = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = False
-if "chart_data" not in st.session_state:
-    st.session_state.chart_data = None
+if "file_bytes" not in st.session_state:
+    st.session_state.file_bytes = None
+if "file_mime_type" not in st.session_state:
+    st.session_state.file_mime_type = None
 if "file_name" not in st.session_state:
     st.session_state.file_name = None
 if "chat_history" not in st.session_state:
@@ -585,19 +587,14 @@ def stream_chat_response(user_message: str):
 
     today = datetime.now().strftime("%B %d, %Y")
 
-    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart.
+    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart (see attached file).
 
 **TODAY'S DATE:** {today}
-
-**CHART DATA:**
-{st.session_state.chart_data}
-
----
 
 {history_context}**USER'S CURRENT QUESTION:** {user_message}
 
 **INSTRUCTIONS:**
-- Answer based strictly on the chart data provided
+- Answer based strictly on the attached birth chart
 - Be conversational but precise
 - Reference specific planetary positions when relevant
 - Keep responses focused and not too long unless detail is requested
@@ -605,7 +602,11 @@ def stream_chat_response(user_message: str):
 - Consider the conversation history for context"""
 
     try:
-        for chunk in agent.stream_chat(prompt):
+        for chunk in agent.stream_chat(
+            prompt,
+            file_bytes=st.session_state.file_bytes,
+            mime_type=st.session_state.file_mime_type
+        ):
             yield chunk
         # Update model if it was switched due to quota
         if agent.switched_model:
@@ -662,27 +663,17 @@ def show_main_app():
 
         if uploaded_file:
             if uploaded_file.name != st.session_state.file_name:
-                with st.spinner("Extracting chart data..."):
+                with st.spinner("Processing..."):
                     try:
                         file_bytes, mime_type = process_uploaded_file(uploaded_file)
-                        # Extract chart data using LLM
-                        agent = AstrologyAgent(
-                            st.session_state.api_key,
-                            model=st.session_state.gemini_model
-                        )
-                        chart_data = agent.extract_chart_data(file_bytes, mime_type)
-                        st.session_state.chart_data = chart_data
+                        st.session_state.file_bytes = file_bytes
+                        st.session_state.file_mime_type = mime_type
                         st.session_state.file_name = uploaded_file.name
                         st.session_state.chat_history = []  # Reset chat history for new chart
-                        # Update model if switched during extraction
-                        if agent.switched_model:
-                            st.session_state.gemini_model = agent.switched_model
                     except ValueError as e:
                         st.error(str(e))
-                    except Exception as e:
-                        st.error(f"Error extracting chart: {str(e)}")
 
-            if st.session_state.chart_data:
+            if st.session_state.file_bytes:
                 st.success(f"Chart loaded: {uploaded_file.name}")
 
         st.markdown("")  # Spacing
@@ -720,11 +711,11 @@ def show_main_app():
 
         with opt_col3:
             st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
-            get_reading_disabled = st.session_state.chart_data is None
+            get_reading_disabled = st.session_state.file_bytes is None
             get_reading = st.button("✨ Get Reading", use_container_width=True, disabled=get_reading_disabled)
 
-        # Chat input for follow-up questions (always visible when chart loaded)
-        if st.session_state.chart_data:
+        # Chat input for follow-up questions (always visible when file loaded)
+        if st.session_state.file_bytes:
             st.markdown("**Ask a follow-up question**")
             input_col1, input_col2 = st.columns([4, 1])
             with input_col1:
@@ -740,7 +731,7 @@ def show_main_app():
         st.markdown("---")
 
         # Response area
-        if st.session_state.chart_data:
+        if st.session_state.file_bytes:
             # Handle "Get Reading" button with streaming
             if get_reading:
                 category = reading_type.lower()
@@ -762,7 +753,8 @@ def show_main_app():
                             response = st.write_stream(
                                 agent.stream_reading(
                                     category=category,
-                                    chart_data=st.session_state.chart_data,
+                                    file_bytes=st.session_state.file_bytes,
+                                    mime_type=st.session_state.file_mime_type,
                                     year=year,
                                     dasha_lord=dasha
                                 )
