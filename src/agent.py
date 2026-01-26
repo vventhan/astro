@@ -126,7 +126,7 @@ class AstrologyAgent:
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
-                        temperature=0.3,  # Lower temp for accurate extraction
+                        temperature=0,  # Lower temp for accurate extraction
                         max_output_tokens=8192,
                     )
                 )
@@ -174,7 +174,7 @@ class AstrologyAgent:
                 model=self.model,
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
-                    temperature=1.0,
+                    temperature=0,
                     max_output_tokens=32768,
                 )
             )
@@ -237,7 +237,7 @@ class AstrologyAgent:
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
-                        temperature=1.0,
+                        temperature=0,
                         max_output_tokens=32768,
                     )
                 ):
@@ -297,7 +297,7 @@ class AstrologyAgent:
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
-                        temperature=0.8,
+                        temperature=0,
                         max_output_tokens=8192,
                     )
                 ):
