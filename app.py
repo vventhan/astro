@@ -3,7 +3,7 @@
 import streamlit as st
 from datetime import datetime
 
-from src.pdf_parser import process_uploaded_file
+from src.pdf_parser import process_uploaded_file, is_text_extraction_available
 from src.agent import AstrologyAgent
 
 # Page configuration
@@ -506,6 +506,8 @@ if "file_mime_type" not in st.session_state:
     st.session_state.file_mime_type = None
 if "file_name" not in st.session_state:
     st.session_state.file_name = None
+if "extracted_text" not in st.session_state:
+    st.session_state.extracted_text = None
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "gemini_model" not in st.session_state:
@@ -587,14 +589,18 @@ def stream_chat_response(user_message: str):
 
     today = datetime.now().strftime("%B %d, %Y")
 
-    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart (see attached file).
+    # Determine if using text or multimodal mode
+    chart_text = st.session_state.extracted_text if is_text_extraction_available(st.session_state.extracted_text) else None
+    chart_reference = "the birth chart data provided" if chart_text else "the attached birth chart"
+
+    prompt = f"""**ROLE:** You are an expert Vedic Astrologer having a conversation about the user's birth chart ({chart_reference}).
 
 **TODAY'S DATE:** {today}
 
 {history_context}**USER'S CURRENT QUESTION:** {user_message}
 
 **INSTRUCTIONS:**
-- Answer based strictly on the attached birth chart
+- Answer based strictly on the birth chart data provided
 - Be conversational but precise
 - Reference specific planetary positions when relevant
 - Keep responses focused and not too long unless detail is requested
@@ -605,7 +611,8 @@ def stream_chat_response(user_message: str):
         for chunk in agent.stream_chat(
             prompt,
             file_bytes=st.session_state.file_bytes,
-            mime_type=st.session_state.file_mime_type
+            mime_type=st.session_state.file_mime_type,
+            chart_text=chart_text
         ):
             yield chunk
         # Update model if it was switched due to quota
@@ -665,16 +672,20 @@ def show_main_app():
             if uploaded_file.name != st.session_state.file_name:
                 with st.spinner("Processing..."):
                     try:
-                        file_bytes, mime_type = process_uploaded_file(uploaded_file)
+                        file_bytes, mime_type, extracted_text = process_uploaded_file(uploaded_file)
                         st.session_state.file_bytes = file_bytes
                         st.session_state.file_mime_type = mime_type
                         st.session_state.file_name = uploaded_file.name
+                        st.session_state.extracted_text = extracted_text
                         st.session_state.chat_history = []  # Reset chat history for new chart
                     except ValueError as e:
                         st.error(str(e))
 
             if st.session_state.file_bytes:
-                st.success(f"Chart loaded: {uploaded_file.name}")
+                if is_text_extraction_available(st.session_state.extracted_text):
+                    st.success(f"Chart loaded: {uploaded_file.name} (text extracted)")
+                else:
+                    st.success(f"Chart loaded: {uploaded_file.name} (image mode)")
 
         st.markdown("")  # Spacing
 
@@ -749,6 +760,9 @@ def show_main_app():
                         year = year_input if reading_type == "Annual" else None
                         dasha = dasha_lord if reading_type == "Dasha" else None
 
+                        # Use text mode if extraction available, otherwise multimodal
+                        chart_text = st.session_state.extracted_text if is_text_extraction_available(st.session_state.extracted_text) else None
+
                         with st.spinner("Generating reading..."):
                             response = st.write_stream(
                                 agent.stream_reading(
@@ -756,7 +770,8 @@ def show_main_app():
                                     file_bytes=st.session_state.file_bytes,
                                     mime_type=st.session_state.file_mime_type,
                                     year=year,
-                                    dasha_lord=dasha
+                                    dasha_lord=dasha,
+                                    chart_text=chart_text
                                 )
                             )
                         # Add to chat history

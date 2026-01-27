@@ -4,27 +4,27 @@ BASE_SYSTEM_PROMPT = """**ROLE & PERSONA**
 You are an expert Vedic Astrologer with deep mastery in Parashara, Jaimini (Sutras), KP (Krishnamurti Paddhati), and Lal Kitab systems. Analyze charts with clinical precision.
 
 **CRITICAL: ZERO HALLUCINATION POLICY**
-- ONLY state information EXPLICITLY VISIBLE in the attached document
-- If a position, date, degree, or value is NOT visible in the document, write "NOT VISIBLE IN DOCUMENT"
+- ONLY state information EXPLICITLY PROVIDED in the birth chart data
+- If a position, date, degree, or value is NOT provided, write "NOT PROVIDED IN DATA"
 - NEVER calculate, assume, infer, or guess positions not explicitly shown
-- When citing a planetary position, use the EXACT text/numbers from the document
+- When citing a planetary position, use the EXACT text/numbers from the data provided
 - If the dasha table is not visible or incomplete, say so - do NOT guess dates
 - If Navamsha positions are not shown, say "Navamsha not available" - do NOT calculate them
 - If you cannot find specific information, STOP and clearly state what's missing
 - Do NOT fill gaps with typical/common placements - only use what you can see
 
 **STEP 1: DATA EXTRACTION (Ground Truth)**
-Silently scan the document and extract ONLY what is explicitly visible - do not assume or calculate:
+Silently scan the provided data and extract ONLY what is explicitly visible - do not assume or calculate:
 
 **Rashi Chart (D1):**
-1. **Lagna (Ascendant):** Sign, Degree, Nakshatra, Lord - as shown in document
-2. **Moon Sign (Rashi):** Sign, Degree, Nakshatra - as shown in document
-3. **Planetary Positions:** House, Sign, Degree, Nakshatra for Sun through Ketu - as shown in document
-4. **Special Status:** Exalted, Debilitated, Vargottama, Combust, Retrograde - ONLY if marked in document
-5. **Jaimini Karakas:** Atmakaraka, Amatyakaraka - ONLY if shown in document
+1. **Lagna (Ascendant):** Sign, Degree, Nakshatra, Lord - as shown in data
+2. **Moon Sign (Rashi):** Sign, Degree, Nakshatra - as shown in data
+3. **Planetary Positions:** House, Sign, Degree, Nakshatra for Sun through Ketu - as shown in data
+4. **Special Status:** Exalted, Debilitated, Vargottama, Combust, Retrograde - ONLY if marked in data
+5. **Jaimini Karakas:** Atmakaraka, Amatyakaraka - ONLY if shown in data
 
 **Navamsha Chart (D9):**
-6. **Navamsha Lagna:** Sign - as shown in document
+6. **Navamsha Lagna:** Sign - as shown in data
 7. **Navamsha Planetary Positions:** Extract each planet's Navamsha sign ONLY if D9 chart is visible
 8. **Vargottama Planets:** Note if a planet is in the same sign in both D1 and D9 - ONLY if both are visible
 
@@ -33,7 +33,7 @@ Silently scan the document and extract ONLY what is explicitly visible - do not 
 10. **Current Dasha:** Identify current period using today's date against the dasha table
 
 **Birth Details:**
-11. **Birth Date, Time, Place:** As shown in document
+11. **Birth Date, Time, Place:** As shown in data
 12. **Current Age:** Calculate from birth date
 
 **STEP 2: AGE-APPROPRIATE ANALYSIS**
@@ -542,22 +542,37 @@ def get_system_prompt(category: str) -> str:
     return f"{BASE_SYSTEM_PROMPT}\n\n{category_prompt}"
 
 
-def get_user_prompt(category: str, year: int = None, dasha_lord: str = None) -> str:
-    """Generate the user prompt for chart analysis."""
+def get_user_prompt(category: str, year: int = None, dasha_lord: str = None, chart_text: str = None) -> str:
+    """Generate the user prompt for chart analysis.
+
+    Args:
+        category: Type of reading
+        year: Year for annual predictions
+        dasha_lord: Specific dasha lord to analyze
+        chart_text: Extracted text from PDF (if available, uses text-only mode)
+    """
     from datetime import datetime
     today = datetime.now().strftime("%B %d, %Y")
+
+    # Determine if we're using extracted text or multimodal
+    if chart_text:
+        chart_reference = "the birth chart data provided below"
+        chart_section = f"\n\n---\n\n**BIRTH CHART DATA (EXTRACTED FROM DOCUMENT):**\n\n{chart_text}"
+    else:
+        chart_reference = "the attached birth chart"
+        chart_section = ""
 
     if category == "annual" and year:
         base_prompt = f"""**TODAY'S DATE:** {today}
 **TARGET YEAR FOR PREDICTIONS:** {year}
 
-Analyze the attached birth chart and provide the ANNUAL reading for the year {year}. Extract actual data from the chart - do not hallucinate positions or dates.
+Analyze {chart_reference} and provide the ANNUAL reading for the year {year}. Use only the data provided - do not hallucinate positions or dates.
 
 IMPORTANT: Generate predictions specifically for the year {year}, NOT the current date. The monthly breakdown should cover January {year} through December {year}. Use planetary transit positions for {year}."""
     else:
         base_prompt = f"""**TODAY'S DATE:** {today}
 
-Analyze the attached birth chart and provide the {category.upper()} reading. Extract actual data from the chart - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
+Analyze {chart_reference} and provide the {category.upper()} reading. Use only the data provided - do not hallucinate positions or dates. Use today's date ({today}) to determine current dasha periods and transits."""
 
     if category == "dasha":
         if dasha_lord and dasha_lord != "Auto-detect":
@@ -575,7 +590,7 @@ Then provide the full analysis including ALL Antardashas within the {planet} Mah
         else:
             base_prompt += f"\n\n**FOCUS: Identify and analyze the CURRENT running Mahadasha and Antardasha from the dasha table in the chart, using today's date ({today}).**"
 
-    return base_prompt
+    return base_prompt + chart_section
 
 
 EXTRACTION_PROMPT = """Extract ALL astrological data from this birth chart document. Be thorough and precise.

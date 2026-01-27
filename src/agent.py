@@ -189,19 +189,25 @@ class AstrologyAgent:
             else:
                 raise Exception(f"Error generating reading: {str(e)}")
 
-    def stream_reading(self, category: str, file_bytes: bytes, mime_type: str, year: int = None, dasha_lord: str = None):
+    def stream_reading(self, category: str, file_bytes: bytes = None, mime_type: str = None,
+                        year: int = None, dasha_lord: str = None, chart_text: str = None):
         """
         Stream an astrology reading for the given category.
 
         Args:
             category: Type of reading
-            file_bytes: Raw bytes of the uploaded file
-            mime_type: MIME type of the file
+            file_bytes: Raw bytes of the uploaded file (for multimodal mode)
+            mime_type: MIME type of the file (for multimodal mode)
             year: Year for annual predictions
             dasha_lord: Specific dasha lord to analyze
+            chart_text: Extracted text from PDF (for text-only mode)
 
         Yields:
             Text chunks as they are generated
+
+        Note:
+            If chart_text is provided, uses text-only mode (no file attachment).
+            Otherwise, uses multimodal mode with file attachment.
         """
         if category == "annual" and not year:
             raise ValueError("Year is required for annual predictions.")
@@ -210,14 +216,19 @@ class AstrologyAgent:
             raise Exception("No model available. Please validate API key first.")
 
         system_prompt = get_system_prompt(category)
-        user_prompt = get_user_prompt(category, year, dasha_lord)
+        user_prompt = get_user_prompt(category, year, dasha_lord, chart_text)
         full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
 
-        # Multimodal content with file
-        contents = [
-            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-            full_prompt
-        ]
+        # Choose content mode: text-only or multimodal
+        if chart_text:
+            # Text-only mode - chart data embedded in prompt
+            contents = full_prompt
+        else:
+            # Multimodal mode - attach file
+            contents = [
+                types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+                full_prompt
+            ]
 
         models_to_try = [self.model]
         next_model = self._get_next_model()
@@ -255,23 +266,33 @@ class AstrologyAgent:
         # All models exhausted
         raise Exception("All models quota exceeded. Please try again later or upgrade to a paid API tier.")
 
-    def stream_chat(self, prompt: str, file_bytes: bytes = None, mime_type: str = None):
+    def stream_chat(self, prompt: str, file_bytes: bytes = None, mime_type: str = None, chart_text: str = None):
         """
         Stream a chat response.
 
         Args:
             prompt: The chat prompt
-            file_bytes: Optional file bytes for context
-            mime_type: MIME type of the file
+            file_bytes: Optional file bytes for context (multimodal mode)
+            mime_type: MIME type of the file (multimodal mode)
+            chart_text: Extracted text from PDF (text-only mode)
 
         Yields:
             Text chunks as they are generated
+
+        Note:
+            If chart_text is provided, uses text-only mode.
+            Otherwise, uses multimodal mode if file_bytes provided.
         """
         if not self.model:
             raise Exception("No model available. Please validate API key first.")
 
-        # Create content with optional file
-        if file_bytes and mime_type:
+        # Choose content mode: text-only, multimodal, or just prompt
+        if chart_text:
+            # Text-only mode - chart data embedded in prompt
+            full_prompt = f"{prompt}\n\n---\n\n**BIRTH CHART DATA:**\n\n{chart_text}"
+            contents = full_prompt
+        elif file_bytes and mime_type:
+            # Multimodal mode - attach file
             contents = [
                 types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
                 prompt
