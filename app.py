@@ -670,7 +670,14 @@ def show_main_app():
 
         if uploaded_file:
             if uploaded_file.name != st.session_state.file_name:
-                with st.spinner("Processing..."):
+                # Determine spinner message based on file type
+                ext = uploaded_file.name.lower().rsplit(".", 1)[-1] if "." in uploaded_file.name else ""
+                if ext in ["png", "jpg", "jpeg", "webp"]:
+                    spinner_msg = "Extracting text from image (OCR)..."
+                else:
+                    spinner_msg = "Processing..."
+
+                with st.spinner(spinner_msg):
                     try:
                         file_bytes, mime_type, extracted_text = process_uploaded_file(uploaded_file)
                         st.session_state.file_bytes = file_bytes
@@ -685,7 +692,7 @@ def show_main_app():
                 if is_text_extraction_available(st.session_state.extracted_text):
                     st.success(f"Chart loaded: {uploaded_file.name} (text extracted)")
                 else:
-                    st.success(f"Chart loaded: {uploaded_file.name} (image mode)")
+                    st.warning(f"Chart loaded: {uploaded_file.name} (image mode - text extraction failed)")
 
         st.markdown("")  # Spacing
 
